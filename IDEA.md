@@ -45,57 +45,31 @@ The key insight: **the agent never trades on belief — it trades on evidence.**
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           ARBITER                                         │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                           │
-│  ┌──────────────┐    ┌──────────────────┐    ┌────────────────────┐     │
-│  │  CMC Agent   │    │  AI Strategy     │    │  Rust Backtest     │     │
-│  │  Hub (MCP)   │───▶│  Brain (LLM)     │───▶│  Validator         │     │
-│  │              │    │                  │    │                    │     │
-│  │ • Prices     │    │ • Regime detect  │    │ • 22 indicators    │     │
-│  │ • Indicators │    │ • Token ranking  │    │ • Full bar loop    │     │
-│  │ • Sentiment  │    │ • Strategy pick  │    │ • Risk metrics     │     │
-│  │ • Fear&Greed │    │ • Param tuning   │    │ • <100ms per run   │     │
-│  │ • Funding    │    │                  │    │                    │     │
-│  │ • On-chain   │    └──────────────────┘    └─────────┬──────────┘     │
-│  │ • x402 pay   │                                      │                 │
-│  └──────────────┘                                      ▼                 │
-│                                              ┌────────────────────┐     │
-│                                              │  Decision Gate     │     │
-│                                              │                    │     │
-│                                              │  Pass criteria:    │     │
-│                                              │  • Expectancy > 0  │     │
-│                                              │  • MaxDD < 15%     │     │
-│                                              │  • Win rate > 40%  │     │
-│                                              │  • Min 10 trades   │     │
-│                                              └─────────┬──────────┘     │
-│                                                        │                 │
-│                                            ┌───────────┴───────────┐    │
-│                                            │ PASS         │ FAIL   │    │
-│                                            ▼              ▼        │    │
-│                                   ┌──────────────┐  (reject/retry) │    │
-│                                   │  TWAK        │                 │    │
-│                                   │  Execution   │                 │    │
-│                                   │              │                 │    │
-│                                   │ • Sign tx    │                 │    │
-│                                   │ • Swap DEX   │                 │    │
-│                                   │ • Guardrails │                 │    │
-│                                   └──────┬───────┘                 │    │
-│                                          │                         │    │
-│                                          ▼                         │    │
-│                                   ┌──────────────┐                 │    │
-│                                   │  BSC Chain   │                 │    │
-│                                   │  (BEP-20)    │                 │    │
-│                                   └──────────────┘                 │    │
-│                                                                    │    │
-├────────────────────────────────────────────────────────────────────┘    │
-│                                                                          │
-│  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │  BNB AI Agent SDK — ERC-8004 On-chain Identity + Registration    │   │
-│  └──────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph ARBITER
+        CMC["CMC Agent Hub\n(MCP)\n\n• Prices\n• Indicators\n• Sentiment\n• Fear & Greed\n• Funding\n• On-chain\n• x402 pay"]
+        AI["AI Strategy Brain\n(LLM)\n\n• Regime detect\n• Token ranking\n• Strategy pick\n• Param tuning"]
+        RUST["Rust Backtest\nValidator\n\n• 22 indicators\n• Full bar loop\n• Risk metrics\n• <100ms per run"]
+        GATE["Decision Gate\n\nPass criteria:\n• Expectancy > 0\n• MaxDD < 15%\n• Win rate > 40%\n• Min 10 trades"]
+        TWAK["TWAK Execution\n\n• Sign tx\n• Swap DEX\n• Guardrails"]
+        BSC["BSC Chain\n(BEP-20)"]
+        SDK["BNB AI Agent SDK — ERC-8004 On-chain Identity + Registration"]
+
+        CMC --> AI --> RUST --> GATE
+        GATE -->|PASS| TWAK
+        GATE -->|FAIL| REJECT["Reject / Retry"]
+        TWAK --> BSC
+    end
+
+    style CMC fill:#1a1a2e,stroke:#16213e,color:#fff
+    style AI fill:#1a1a2e,stroke:#16213e,color:#fff
+    style RUST fill:#1a1a2e,stroke:#16213e,color:#fff
+    style GATE fill:#0f3460,stroke:#16213e,color:#fff
+    style TWAK fill:#533483,stroke:#16213e,color:#fff
+    style BSC fill:#e94560,stroke:#16213e,color:#fff
+    style SDK fill:#0f3460,stroke:#16213e,color:#fff
+    style REJECT fill:#333,stroke:#666,color:#aaa
 ```
 
 ---
@@ -104,16 +78,21 @@ The key insight: **the agent never trades on belief — it trades on evidence.**
 
 ### What Every Other Agent Does:
 
-```
-Market Data → LLM "thinks" → Trade
+```mermaid
+flowchart LR
+    A["Market Data"] --> B["LLM 'thinks'"] --> C["Trade"]
 ```
 
 ### What Arbiter Does:
 
-```
-Market Data → LLM proposes → Rust Engine validates against 30 days of data →
-  → IF positive expectancy: Execute
-  → IF negative expectancy: Reject, try different params or skip
+```mermaid
+flowchart LR
+    A["Market Data"] --> B["LLM proposes"] --> C["Rust Engine validates\nagainst 30 days of data"]
+    C -->|Positive expectancy| D["Execute"]
+    C -->|Negative expectancy| E["Reject / try different\nparams or skip"]
+
+    style D fill:#2e7d32,stroke:#1b5e20,color:#fff
+    style E fill:#c62828,stroke:#b71c1c,color:#fff
 ```
 
 This is the **only agent in the competition with a quantitative validation gate**.
