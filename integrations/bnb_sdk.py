@@ -1,11 +1,25 @@
+import logging
 from bnbagent import ERC8004Agent
 from integrations.wallet_manager import WalletManager
+
+# Setup logging to match the rest of Arbiter's core infrastructure
+logger = logging.getLogger(__name__)
 
 class ArbiterIdentity:
     """Handles ERC-8004 Registration and On-chain Identity for Arbiter."""
     
     def __init__(self, wallet_manager: WalletManager):
-        self.wallet = wallet_manager.get_bnbagent_provider()
+        # Retrieve the provider from the secure wallet manager
+        self.wallet = wallet_manager.get_bnb_provider()
+        
+        # FAIL-SAFE GUARDRAIL: Halt execution if the wallet provider failed to load
+        if not self.wallet:
+            logger.critical(" CRITICAL: EVMWalletProvider is None. Identity layer instantiation aborted.")
+            raise ValueError(
+                "EVMWalletProvider could not be loaded. This typically means the 'bnbagent' "
+                "dependency is missing or the ARBITER_PRIVATE_KEY environment variable is invalid."
+            )
+            
         self.sdk = ERC8004Agent(network="bsc-testnet", wallet_provider=self.wallet)
 
     def register(self):
@@ -31,6 +45,12 @@ class ArbiterIdentity:
             return None
 
 if __name__ == "__main__":
-    shared_wallet_manager = WalletManager()
-    identity = ArbiterIdentity(wallet_manager=shared_wallet_manager)
-    identity.register()
+    # Initialize basic logging layout for local execution validation
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    
+    try:
+        shared_wallet_manager = WalletManager()
+        identity = ArbiterIdentity(wallet_manager=shared_wallet_manager)
+        identity.register()
+    except Exception as error:
+        print(f"Runtime Error: {error}")
