@@ -38,12 +38,10 @@ high_volatility:
   indicators:
     - { type: "ATR", period: 14 }
     - { type: "ATR", period: 50, alias: "ATR_50" }
-    - { type: "Donchian", period: 20 }
     - { type: "EMA", period: 21 }
     - { type: "RSI", period: 14 }
   entry_conditions:
     - { left: "ATR_14", op: ">", right: "ATR_50" }
-    - { left: "close", op: ">", right: "DONCHIAN_20.upper" }
     - { left: "RSI_14", op: ">", right: "50" }
   exit_conditions:
     - { left: "close", op: "<", right: "EMA_21" }
