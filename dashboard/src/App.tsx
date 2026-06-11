@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { OHLCVChart } from './components/OHLCVChart'
 import { BacktestPanel } from './components/BacktestPanel'
 import { ScannerPanel } from './components/ScannerPanel'
-import { Activity, BarChart3, Search } from 'lucide-react'
+import { PortfolioPanel } from './components/PortfolioPanel'
+import { AgentStatus } from './components/AgentStatus'
+import { Activity, BarChart3, Search, Wallet, Radio } from 'lucide-react'
 
-type Tab = 'chart' | 'backtest' | 'scanner'
+type Tab = 'chart' | 'backtest' | 'scanner' | 'portfolio' | 'agent'
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('chart')
@@ -27,11 +29,13 @@ function App() {
         </select>
       </header>
 
-      <nav className="flex gap-2 mb-4">
+      <nav className="flex gap-2 mb-4 flex-wrap">
         {([
           { id: 'chart' as Tab, label: 'OHLCV Chart', icon: Activity },
           { id: 'backtest' as Tab, label: 'Backtest', icon: BarChart3 },
           { id: 'scanner' as Tab, label: 'Scanner', icon: Search },
+          { id: 'portfolio' as Tab, label: 'Portfolio', icon: Wallet },
+          { id: 'agent' as Tab, label: 'Agent', icon: Radio },
         ]).map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`neo-btn flex items-center gap-2 text-sm ${activeTab === tab.id ? 'neo-btn-primary' : 'bg-white'}`}>
@@ -44,6 +48,8 @@ function App() {
         {activeTab === 'chart' && <OHLCVChart symbol={symbol} />}
         {activeTab === 'backtest' && <BacktestPanel symbol={symbol} />}
         {activeTab === 'scanner' && <ScannerPanel />}
+        {activeTab === 'portfolio' && <PortfolioPanel />}
+        {activeTab === 'agent' && <AgentStatus />}
       </main>
     </div>
   )
