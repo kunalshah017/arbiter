@@ -8,9 +8,10 @@ from arbiter._engine import crypto_backtest
 import json
 import sys
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from server.ws import streamer
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -21,6 +22,11 @@ app.add_middleware(CORSMiddleware, allow_origins=[
                    "http://localhost:5173"], allow_methods=["*"], allow_headers=["*"])
 
 binance = BinanceClient()
+
+
+@app.websocket("/ws/ohlcv/{symbol}")
+async def ws_ohlcv(websocket: WebSocket, symbol: str, interval: str = "1m"):
+    await streamer.connect(websocket, symbol.upper(), interval)
 
 
 class BacktestRequest(BaseModel):

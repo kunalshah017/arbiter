@@ -1,14 +1,20 @@
-import { useEffect, useRef, useState } from 'react'
-import { createChart, CandlestickSeries, HistogramSeries, type IChartApi } from 'lightweight-charts'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { createChart, CandlestickSeries, HistogramSeries, type IChartApi, type ISeriesApi } from 'lightweight-charts'
+import { useWebSocket } from '../hooks/useWebSocket'
 
 interface OHLCVBar { ts: number; o: number; h: number; l: number; c: number; v: number }
 
 export function OHLCVChart({ symbol }: { symbol: string }) {
     const chartRef = useRef<HTMLDivElement>(null)
     const chartInstance = useRef<IChartApi | null>(null)
+    const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
+    const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
     const [bars, setBars] = useState<OHLCVBar[]>([])
     const [loading, setLoading] = useState(true)
     const [interval, setInterval_] = useState('1h')
+    const loadingMore = useRef(false)
+    const barsRef = useRef<OHLCVBar[]>([])
+    barsRef.current = bars
 
     useEffect(() => {
         setLoading(true)
@@ -17,6 +23,25 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
             .catch(() => setLoading(false))
     }, [symbol, interval])
 
+    const handleWsMessage = useCallback((bar: OHLCVBar & { closed?: boolean }) => {
+        if (!candleSeriesRef.current || !volumeSeriesRef.current) return
+        candleSeriesRef.current.update({ time: bar.ts as any, open: bar.o, high: bar.h, low: bar.l, close: bar.c })
+        volumeSeriesRef.current.update({ time: bar.ts as any, value: bar.v, color: bar.c >= bar.o ? 'rgba(22,163,74,0.3)' : 'rgba(220,38,38,0.3)' })
+        if (bar.closed) {
+            setBars(prev => {
+                const updated = [...prev]
+                if (updated.length > 0 && updated[updated.length - 1].ts === bar.ts) {
+                    updated[updated.length - 1] = bar
+                } else {
+                    updated.push(bar)
+                }
+                return updated
+            })
+        }
+    }, [])
+
+    useWebSocket({ url: `/ws/ohlcv/${symbol}?interval=${interval}`, onMessage: handleWsMessage, enabled: !loading && bars.length > 0 })
+
     useEffect(() => {
         if (!chartRef.current || bars.length === 0) return
 
@@ -24,6 +49,8 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
         if (chartInstance.current) {
             try { chartInstance.current.remove() } catch { /* already disposed */ }
             chartInstance.current = null
+            candleSeriesRef.current = null
+            volumeSeriesRef.current = null
         }
 
         const container = chartRef.current
@@ -43,11 +70,38 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
             wickUpColor: '#16A34A', wickDownColor: '#DC2626',
         })
         candleSeries.setData(bars.map(b => ({ time: b.ts as any, open: b.o, high: b.h, low: b.l, close: b.c })))
+        candleSeriesRef.current = candleSeries
 
         const volumeSeries = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'volume' })
         chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } })
         volumeSeries.setData(bars.map(b => ({ time: b.ts as any, value: b.v, color: b.c >= b.o ? 'rgba(22,163,74,0.3)' : 'rgba(220,38,38,0.3)' })))
+        volumeSeriesRef.current = volumeSeries
         chart.timeScale().fitContent()
+
+        // Infinite scroll: load older bars when near left edge
+        const onVisibleRangeChange = () => {
+            if (loadingMore.current) return
+            const timeScale = chart.timeScale()
+            const logicalRange = timeScale.getVisibleLogicalRange()
+            if (!logicalRange) return
+            if (logicalRange.from < 10) {
+                loadingMore.current = true
+                const oldestTs = barsRef.current[0]?.ts
+                if (!oldestTs) { loadingMore.current = false; return }
+                const endTime = oldestTs * 1000
+                fetch(`/api/ohlcv/${symbol}?interval=${interval}&limit=200&endTime=${endTime}`)
+                    .then(r => r.json())
+                    .then((olderBars: OHLCVBar[]) => {
+                        if (olderBars.length === 0) return
+                        // Filter out any overlap
+                        const filtered = olderBars.filter(b => b.ts < oldestTs)
+                        if (filtered.length === 0) return
+                        setBars(prev => [...filtered, ...prev])
+                    })
+                    .finally(() => { loadingMore.current = false })
+            }
+        }
+        chart.timeScale().subscribeVisibleLogicalRangeChange(onVisibleRangeChange)
 
         const handleResize = () => {
             if (chartInstance.current) chart.applyOptions({ width: container.clientWidth })
@@ -56,8 +110,11 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
 
         return () => {
             window.removeEventListener('resize', handleResize)
+            chart.timeScale().unsubscribeVisibleLogicalRangeChange(onVisibleRangeChange)
             if (chartInstance.current === chart) {
                 chartInstance.current = null
+                candleSeriesRef.current = null
+                volumeSeriesRef.current = null
                 try { chart.remove() } catch { /* already disposed in StrictMode */ }
             }
         }
