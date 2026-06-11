@@ -57,7 +57,8 @@ class TestFullPipeline:
         from data.models import Regime
 
         bars = [
-            {"ts": 1700000000 + i * 3600, "o": 100, "h": 100.5, "l": 99.5, "c": 100, "v": 1e6}
+            {"ts": 1700000000 + i * 3600, "o": 100,
+                "h": 100.5, "l": 99.5, "c": 100, "v": 1e6}
             for i in range(200)
         ]
         config = get_strategy_config(Regime.TRENDING_UP)
@@ -92,7 +93,8 @@ class TestFullPipeline:
             "warmup_bars": 30,
             "atr_period": 14,
         }
-        result = json.loads(crypto_backtest(json.dumps(bars), json.dumps(config)))
+        result = json.loads(crypto_backtest(
+            json.dumps(bars), json.dumps(config)))
         assert result["num_trades"] >= 1
         assert "total_return_pct" in result
 
@@ -134,7 +136,8 @@ class TestFullPipeline:
         from data.transforms import binance_klines_to_bars, bars_to_engine_json
 
         klines = [
-            [1704067200000, "100.0", "105.0", "99.0", "103.0", "5000000.0", 1704070799999, "0", 0, "0", "0", "0"],
+            [1704067200000, "100.0", "105.0", "99.0", "103.0",
+                "5000000.0", 1704070799999, "0", 0, "0", "0", "0"],
         ]
         bars = binance_klines_to_bars(klines)
         engine = bars_to_engine_json(bars)
