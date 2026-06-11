@@ -17,8 +17,7 @@ class ArbiterExecutionEngine:
         self.env = os.environ.copy()
         
         # 1. Stateless Wallet Injection
-        self.env["TWAK_PRIVATE_KEY"] = wallet_manager.private_key
-        self.env["TWAK_WALLET_PASSWORD"] = wallet_manager.password
+        self.env = wallet_manager.secure_inject_twak_env(self.env)
         
         # 2. Trust Wallet API Authentication (Required for routing)
         self.env["TWAK_ACCESS_ID"] = os.getenv("TWAK_ACCESS_ID")
