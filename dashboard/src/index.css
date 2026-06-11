@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #FDC800;
+  --color-secondary: #432DD7;
+  --color-surface: #FBFBF9;
+  --color-text: #1C293C;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+  --color-border: #1C293C;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.neo-card {
+  background: white;
+  border: 2.5px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 4px 4px 0px var(--color-border);
+}
+
+.neo-btn {
+  border: 2.5px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 3px 3px 0px var(--color-border);
+  font-weight: 600;
+  padding: 8px 16px;
+  transition: all 0.1s;
+  cursor: pointer;
+}
+
+.neo-btn:active {
+  box-shadow: 1px 1px 0px var(--color-border);
+  transform: translate(2px, 2px);
+}
+
+.neo-btn-primary { background: var(--color-primary); color: var(--color-text); }
+.neo-btn-secondary { background: var(--color-secondary); color: white; }
+
+.neo-badge {
+  border: 2px solid var(--color-border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  display: inline-block;
+}
+
+.neo-badge-success { background: var(--color-success); color: white; }
+.neo-badge-danger { background: var(--color-danger); color: white; }
+
+.neo-input {
+  border: 2.5px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: white;
+}
+
+.neo-input:focus { outline: none; box-shadow: 3px 3px 0px var(--color-primary); }
+
+.neo-select {
+  border: 2.5px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: white;
+  cursor: pointer;
+}
