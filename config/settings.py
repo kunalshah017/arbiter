@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     monitor_interval_seconds: int = 300
 
     # Backtest gate thresholds
-    gate_min_expectancy_pct: float = 0.5
+    gate_min_expectancy_pct: float = 0.3
     gate_max_drawdown_pct: float = -15.0
     gate_min_win_rate: float = 35.0
     gate_min_trades: int = 5

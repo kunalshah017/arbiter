@@ -7,54 +7,54 @@
 
 ## Overall Progress
 
-| Task | Status | Notes |
-|------|--------|-------|
-| Task 1: Project Scaffold + Rust Engine | ✅ Complete | All files created, compiles clean |
-| Task 2: Rust CryptoSpotRunner | ✅ Complete | 436-line runner with full state machine |
-| Task 3: Python Data Layer | ✅ Complete | **Adapted:** Uses Binance (not CMC REST) for OHLCV |
-| Task 4: Regime + Strategy + Gate | ✅ Complete | 5 regime strategies, LLM classifier, decision gate |
-| Task 5: TWAK + Risk Management | ✅ Complete | Sizing, guardrails, portfolio tracking |
-| Task 6: Token Scanner | ✅ Complete | Binance 24hr ticker ranking, 43 tokens |
-| Task 7: Main Agent Loop | ✅ Complete | Scan/monitor/daily async loops |
-| Task 8: Telegram Notifications | ✅ Complete | Entry/exit/daily/error alerts |
-| Task 9: Docker + Deployment | ✅ Complete | Dockerfile + docker-compose.yml |
-| Task 10: Registration + README | ✅ Complete | scripts/register.py + README.md |
-| Task 11: Integration Tests | ✅ Complete | 7 integration tests + manual_backtest.py |
-| Task 12: Final Verification | ⬜ Pending | Need to push, tag v0.1.0 |
-| **Bonus: Dashboard UI** | ✅ Complete | Vite+React+lightweight-charts, neobrutalism |
-| **Bonus: FastAPI Server** | ✅ Complete | /api/ohlcv, /api/backtest, /api/scanner |
+| Task                                   | Status      | Notes                                              |
+| -------------------------------------- | ----------- | -------------------------------------------------- |
+| Task 1: Project Scaffold + Rust Engine | ✅ Complete | All files created, compiles clean                  |
+| Task 2: Rust CryptoSpotRunner          | ✅ Complete | 436-line runner with full state machine            |
+| Task 3: Python Data Layer              | ✅ Complete | **Adapted:** Uses Binance (not CMC REST) for OHLCV |
+| Task 4: Regime + Strategy + Gate       | ✅ Complete | 5 regime strategies, LLM classifier, decision gate |
+| Task 5: TWAK + Risk Management         | ✅ Complete | Sizing, guardrails, portfolio tracking             |
+| Task 6: Token Scanner                  | ✅ Complete | Binance 24hr ticker ranking, 43 tokens             |
+| Task 7: Main Agent Loop                | ✅ Complete | Scan/monitor/daily async loops                     |
+| Task 8: Telegram Notifications         | ✅ Complete | Entry/exit/daily/error alerts                      |
+| Task 9: Docker + Deployment            | ✅ Complete | Dockerfile + docker-compose.yml                    |
+| Task 10: Registration + README         | ✅ Complete | scripts/register.py + README.md                    |
+| Task 11: Integration Tests             | ✅ Complete | 7 integration tests + manual_backtest.py           |
+| Task 12: Final Verification            | ⬜ Pending  | Need to push, tag v0.1.0                           |
+| **Bonus: Dashboard UI**                | ✅ Complete | Vite+React+lightweight-charts, neobrutalism        |
+| **Bonus: FastAPI Server**              | ✅ Complete | /api/ohlcv, /api/backtest, /api/scanner            |
 
 ---
 
 ## Test Suite Status
 
-| Test File | Tests | Status |
-|-----------|-------|--------|
-| tests/test_engine.py | 7 | ✅ Pass |
-| tests/test_gate.py | 3 | ✅ Pass |
-| tests/test_transforms.py | 3 | ✅ Pass |
-| tests/test_risk.py | 6 | ✅ Pass |
-| tests/test_scanner.py | 4 | ✅ Pass |
-| tests/test_integration.py | 7 | ✅ Pass |
-| tests/test_api.py | 3 | ✅ Pass |
-| dashboard (vitest) | 5 | ✅ Pass |
-| **Total** | **38** | **All passing** |
+| Test File                 | Tests  | Status          |
+| ------------------------- | ------ | --------------- |
+| tests/test_engine.py      | 7      | ✅ Pass         |
+| tests/test_gate.py        | 3      | ✅ Pass         |
+| tests/test_transforms.py  | 3      | ✅ Pass         |
+| tests/test_risk.py        | 6      | ✅ Pass         |
+| tests/test_scanner.py     | 4      | ✅ Pass         |
+| tests/test_integration.py | 7      | ✅ Pass         |
+| tests/test_api.py         | 3      | ✅ Pass         |
+| dashboard (vitest)        | 5      | ✅ Pass         |
+| **Total**                 | **38** | **All passing** |
 
 ---
 
 ## Architecture Deviations from Plan
 
-| Plan says | Actual | Reason |
-|-----------|--------|--------|
-| CMC REST OHLCV | Binance public API | CMC OHLCV not available on free tier |
-| CMC MCP for OHLCV | CMC MCP for regime signals only | MCP has no OHLCV tool (12 tools available) |
-| `integrations/cmc.py` (REST+MCP) | `integrations/cmc.py` (MCP only) + `integrations/binance.py` | Split by data source |
-| `data/transforms.py` (CMC format) | `data/transforms.py` (Binance kline format) | Different API response format |
-| `conditions/` module (from Astryx) | Conditions inline in `runner.rs` | Simpler — no separate evaluator needed |
-| `agent/scheduler.py` | Logic in `agent/main.py` | Single orchestrator class handles scheduling |
-| `risk/competition.py` | Removed (was empty placeholder) | Guardrails cover competition DD cap |
-| 149 tokens | 43 tokens | Filtered to Binance-available USDT pairs |
-| `nautilus-indicators = "0.4"` | `nautilus-indicators = "0.54.0"` | Matched actual Astryx version |
+| Plan says                          | Actual                                                       | Reason                                       |
+| ---------------------------------- | ------------------------------------------------------------ | -------------------------------------------- |
+| CMC REST OHLCV                     | Binance public API                                           | CMC OHLCV not available on free tier         |
+| CMC MCP for OHLCV                  | CMC MCP for regime signals only                              | MCP has no OHLCV tool (12 tools available)   |
+| `integrations/cmc.py` (REST+MCP)   | `integrations/cmc.py` (MCP only) + `integrations/binance.py` | Split by data source                         |
+| `data/transforms.py` (CMC format)  | `data/transforms.py` (Binance kline format)                  | Different API response format                |
+| `conditions/` module (from Astryx) | Conditions inline in `runner.rs`                             | Simpler — no separate evaluator needed       |
+| `agent/scheduler.py`               | Logic in `agent/main.py`                                     | Single orchestrator class handles scheduling |
+| `risk/competition.py`              | Removed (was empty placeholder)                              | Guardrails cover competition DD cap          |
+| 149 tokens                         | 43 tokens                                                    | Filtered to Binance-available USDT pairs     |
+| `nautilus-indicators = "0.4"`      | `nautilus-indicators = "0.54.0"`                             | Matched actual Astryx version                |
 
 ---
 
@@ -138,17 +138,17 @@ integrations/x402_payer.py       — Removed (not needed, CMC MCP handles paymen
 
 ## Key Metrics
 
-| Metric | Value |
-|--------|-------|
-| Python files (non-empty) | 28 |
-| Rust source files | 9 |
-| Total lines (Python) | ~1,800 |
-| Total lines (Rust) | ~960 |
-| Test count | 38 |
-| Technical indicators | 20 |
-| Strategy regimes | 5 |
-| Tradeable tokens | 43 |
-| Backtest speed | <50ms per run |
+| Metric                   | Value         |
+| ------------------------ | ------------- |
+| Python files (non-empty) | 28            |
+| Rust source files        | 9             |
+| Total lines (Python)     | ~1,800        |
+| Total lines (Rust)       | ~960          |
+| Test count               | 38            |
+| Technical indicators     | 20            |
+| Strategy regimes         | 5             |
+| Tradeable tokens         | 43            |
+| Backtest speed           | <50ms per run |
 
 ---
 
@@ -170,6 +170,7 @@ integrations/x402_payer.py       — Removed (not needed, CMC MCP handles paymen
 ## How to Run
 
 ### Backend (API server for dashboard)
+
 ```bash
 cd /Users/kunal/arbiter
 source .venv/bin/activate
@@ -177,13 +178,16 @@ uvicorn server.api:app --reload --port 8000
 ```
 
 ### Dashboard
+
 ```bash
 cd /Users/kunal/arbiter/dashboard
 npm run dev
 ```
+
 → Open http://localhost:5173
 
 ### Full Agent (autonomous trading)
+
 ```bash
 cd /Users/kunal/arbiter
 source .venv/bin/activate
@@ -191,12 +195,14 @@ python -m agent.main
 ```
 
 ### Manual Backtest (single token)
+
 ```bash
 python scripts/manual_backtest.py BNB trending_up
 python scripts/manual_backtest.py ETH mean_reverting
 ```
 
 ### Run Tests
+
 ```bash
 # Python tests (33)
 pytest tests/ -v

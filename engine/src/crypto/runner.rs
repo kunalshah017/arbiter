@@ -385,7 +385,7 @@ fn compute_metrics(
     let wins: Vec<&CompletedTrade> = trades.iter().filter(|t| t.pnl_pct > 0.0).collect();
     let losses: Vec<&CompletedTrade> = trades.iter().filter(|t| t.pnl_pct <= 0.0).collect();
 
-    let win_rate = wins.len() as f64 / num_trades as f64;
+    let win_rate = (wins.len() as f64 / num_trades as f64) * 100.0;
 
     let gross_profit: f64 = wins.iter().map(|t| t.pnl_pct).sum();
     let gross_loss: f64 = losses.iter().map(|t| t.pnl_pct.abs()).sum();
