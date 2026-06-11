@@ -10,13 +10,21 @@ import sys
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from server.ws import streamer
+from server.database import init_db
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-app = FastAPI(title="Arbiter Dashboard API")
+@asynccontextmanager
+async def lifespan(app):
+    await init_db()
+    yield
+
+
+app = FastAPI(title="Arbiter Dashboard API", lifespan=lifespan)
 
 app.add_middleware(CORSMiddleware, allow_origins=[
                    "http://localhost:5173"], allow_methods=["*"], allow_headers=["*"])
