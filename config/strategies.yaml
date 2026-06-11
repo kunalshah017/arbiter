@@ -8,11 +8,9 @@ trending_up:
     - { type: "EMA", period: 21 }
     - { type: "RSI", period: 14 }
     - { type: "ATR", period: 14 }
-    - { type: "MACD", fast: 12, slow: 26, signal: 9 }
   entry_conditions:
     - { left: "EMA_9", op: ">", right: "EMA_21" }
     - { left: "RSI_14", op: ">", right: "55" }
-    - { left: "MACD_12_26.histogram", op: ">", right: "0" }
   exit_conditions:
     - { left: "EMA_9", op: "crossunder", right: "EMA_21" }
     - { left: "RSI_14", op: "<", right: "40" }
