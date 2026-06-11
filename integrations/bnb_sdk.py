@@ -2,25 +2,35 @@
 import os
 import structlog
 
+from integrations.wallet_manager import WalletManager
+
 logger = structlog.get_logger()
 
 
-async def register_agent_identity():
-    """Register agent on-chain via ERC-8004. Idempotent."""
+async def register_agent_identity(wallet_manager: WalletManager | None = None):
+    """Register agent on-chain via ERC-8004. Idempotent.
+
+    Uses WalletManager for secure credential isolation.
+    """
     try:
-        from bnbagent import ERC8004Agent, AgentEndpoint, EVMWalletProvider
+        from bnbagent import ERC8004Agent, AgentEndpoint
 
-        wallet = EVMWalletProvider(
-            password=os.getenv("WALLET_PASSWORD", ""),
-            private_key=os.getenv("PRIVATE_KEY"),
-        )
+        if wallet_manager is None:
+            wallet_manager = WalletManager()
 
-        sdk = ERC8004Agent(network=os.getenv(
-            "NETWORK", "bsc-mainnet"), wallet_provider=wallet)
+        wallet = wallet_manager.get_bnb_provider()
+        if not wallet:
+            logger.error("bnb_sdk.wallet_provider_failed",
+                         msg="EVMWalletProvider could not be loaded")
+            return None
+
+        network = os.getenv("NETWORK", "bsc-mainnet")
+        sdk = ERC8004Agent(network=network, wallet_provider=wallet)
 
         agent_uri = sdk.generate_agent_uri(
             name="arbiter-trading-agent",
-            description="Backtest-validated autonomous crypto trader on BSC.",
+            description="Backtest-validated autonomous crypto trader on BSC. "
+                        "Validates every trade against a Rust engine before execution.",
             endpoints=[
                 AgentEndpoint(
                     name="trading", endpoint="https://arbiter.agent", version="0.1.0"),

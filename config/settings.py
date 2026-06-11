@@ -13,10 +13,15 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str = ""
 
-    # BNB SDK
-    private_key: str = ""
-    wallet_password: str = ""
+    # BNB SDK / Wallet
+    arbiter_private_key: str = ""
+    arbiter_wallet_password: str = ""
     network: str = "bsc-mainnet"
+    bsc_rpc_url: str = "https://bsc-dataseed.binance.org/"
+
+    # TWAK API Auth
+    twak_access_id: str = ""
+    twak_hmac_secret: str = ""
 
     # Telegram
     telegram_bot_token: str = ""

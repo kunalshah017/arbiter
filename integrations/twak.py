@@ -1,13 +1,29 @@
 """Trust Wallet Agent Kit CLI wrapper for execution."""
 import asyncio
 import json
+import os
 import structlog
+
+from integrations.wallet_manager import WalletManager
 
 logger = structlog.get_logger()
 
 
 class TWAKExecutor:
-    """Wraps TWAK CLI commands for autonomous trading."""
+    """Wraps TWAK CLI commands for autonomous trading.
+
+    Uses WalletManager for secure credential injection into subprocess env.
+    """
+
+    def __init__(self, wallet_manager: WalletManager | None = None):
+        self._env = os.environ.copy()
+        if wallet_manager and wallet_manager.has_credentials:
+            self._env = wallet_manager.secure_inject_twak_env(self._env)
+        # Inject TWAK API auth if available
+        for key in ("TWAK_ACCESS_ID", "TWAK_HMAC_SECRET"):
+            val = os.getenv(key)
+            if val:
+                self._env[key] = val
 
     async def swap(
         self,
@@ -69,6 +85,7 @@ class TWAKExecutor:
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=self._env,
             )
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
 
