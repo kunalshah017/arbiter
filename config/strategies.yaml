@@ -1,0 +1,84 @@
+# Strategy templates keyed by market regime.
+# Each strategy defines indicators + entry/exit conditions for the Rust engine.
+
+trending_up:
+  name: "Momentum Breakout"
+  indicators:
+    - { type: "EMA", period: 9 }
+    - { type: "EMA", period: 21 }
+    - { type: "RSI", period: 14 }
+    - { type: "ATR", period: 14 }
+    - { type: "MACD", fast: 12, slow: 26, signal: 9 }
+  entry_conditions:
+    - { left: "EMA_9", op: ">", right: "EMA_21" }
+    - { left: "RSI_14", op: ">", right: "55" }
+    - { left: "MACD_12_26.histogram", op: ">", right: "0" }
+  exit_conditions:
+    - { left: "EMA_9", op: "crossunder", right: "EMA_21" }
+    - { left: "RSI_14", op: "<", right: "40" }
+  stop_loss_atr_multiple: 2.0
+  take_profit_atr_multiple: 4.0
+
+mean_reverting:
+  name: "Mean Reversion"
+  indicators:
+    - { type: "BBands", period: 20, std_dev: 2.0 }
+    - { type: "RSI", period: 14 }
+    - { type: "ATR", period: 14 }
+    - { type: "EMA", period: 50 }
+  entry_conditions:
+    - { left: "close", op: "<", right: "BBANDS_20.lower" }
+    - { left: "RSI_14", op: "<", right: "30" }
+  exit_conditions:
+    - { left: "close", op: ">", right: "BBANDS_20.middle" }
+    - { left: "RSI_14", op: ">", right: "65" }
+  stop_loss_atr_multiple: 1.5
+  take_profit_atr_multiple: 3.0
+
+high_volatility:
+  name: "Volatility Breakout"
+  indicators:
+    - { type: "ATR", period: 14 }
+    - { type: "ATR", period: 50, alias: "ATR_50" }
+    - { type: "Donchian", period: 20 }
+    - { type: "EMA", period: 21 }
+    - { type: "RSI", period: 14 }
+  entry_conditions:
+    - { left: "ATR_14", op: ">", right: "ATR_50" }
+    - { left: "close", op: ">", right: "DONCHIAN_20.upper" }
+    - { left: "RSI_14", op: ">", right: "50" }
+  exit_conditions:
+    - { left: "close", op: "<", right: "EMA_21" }
+  stop_loss_atr_multiple: 3.0
+  take_profit_atr_multiple: 5.0
+
+trending_down:
+  name: "Defensive (Cash Rotation)"
+  indicators:
+    - { type: "EMA", period: 9 }
+    - { type: "EMA", period: 50 }
+    - { type: "RSI", period: 14 }
+    - { type: "ATR", period: 14 }
+  entry_conditions:
+    - { left: "EMA_9", op: ">", right: "EMA_50" }
+    - { left: "RSI_14", op: ">", right: "60" }
+    - { left: "close", op: ">", right: "EMA_50" }
+  exit_conditions:
+    - { left: "RSI_14", op: "<", right: "50" }
+    - { left: "close", op: "<", right: "EMA_9" }
+  stop_loss_atr_multiple: 1.5
+  take_profit_atr_multiple: 2.5
+
+choppy:
+  name: "Ultra Conservative"
+  indicators:
+    - { type: "RSI", period: 14 }
+    - { type: "BBands", period: 20, std_dev: 2.5 }
+    - { type: "ATR", period: 14 }
+  entry_conditions:
+    - { left: "RSI_14", op: "<", right: "20" }
+    - { left: "close", op: "<", right: "BBANDS_20.lower" }
+  exit_conditions:
+    - { left: "RSI_14", op: ">", right: "50" }
+  stop_loss_atr_multiple: 1.0
+  take_profit_atr_multiple: 2.0
