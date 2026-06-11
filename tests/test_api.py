@@ -1,10 +1,10 @@
 """Tests for the FastAPI dashboard server."""
+from server.api import app
+from fastapi.testclient import TestClient
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from fastapi.testclient import TestClient
-from server.api import app
 
 client = TestClient(app)
 
@@ -26,5 +26,6 @@ def test_get_tokens():
 
 
 def test_backtest_invalid_regime():
-    resp = client.post("/api/backtest", json={"symbol": "BNB", "regime": "invalid"})
+    resp = client.post(
+        "/api/backtest", json={"symbol": "BNB", "regime": "invalid"})
     assert resp.status_code == 400
