@@ -15,11 +15,14 @@ class WalletManager:
     """Secure credential isolation for wallet operations."""
 
     def __init__(self):
-        private_key = os.getenv("ARBITER_PRIVATE_KEY", os.getenv("PRIVATE_KEY", ""))
-        password = os.getenv("ARBITER_WALLET_PASSWORD", os.getenv("WALLET_PASSWORD", ""))
+        private_key = os.getenv("ARBITER_PRIVATE_KEY",
+                                os.getenv("PRIVATE_KEY", ""))
+        password = os.getenv("ARBITER_WALLET_PASSWORD",
+                             os.getenv("WALLET_PASSWORD", ""))
 
         if not private_key:
-            logger.warning("wallet.no_private_key", msg="ARBITER_PRIVATE_KEY not set")
+            logger.warning("wallet.no_private_key",
+                           msg="ARBITER_PRIVATE_KEY not set")
 
         self.__private_key: str = private_key
         self.__password: str = password
