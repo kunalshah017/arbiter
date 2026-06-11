@@ -1,11 +1,21 @@
 import { useState } from 'react'
 import { TrendingUp, TrendingDown, Activity, Target, Percent, CheckCircle, XCircle, BarChart3, Award } from 'lucide-react'
+import { BacktestChart } from './BacktestChart'
+import { TradeTable } from './TradeTable'
+import { EquityCurve } from './EquityCurve'
+
+interface Trade {
+    entry_ts: number; exit_ts: number; entry_price: number; exit_price: number; pnl_pct: number; side: string; duration_bars: number
+}
+interface EquityPoint { trade_num: number; equity: number }
+interface Bar { ts: number; o: number; h: number; l: number; c: number; v: number }
 
 interface BacktestResult {
     symbol: string; regime: string; bars_count: number; passed: boolean
     total_return_pct: number; max_drawdown_pct: number; win_rate: number
     num_trades: number; profit_factor: number; expectancy_pct: number
     rejection_reasons: string[]
+    bars: Bar[]; trades: Trade[]; equity_curve: EquityPoint[]
 }
 
 export function BacktestPanel({ symbol }: { symbol: string }) {
@@ -17,7 +27,7 @@ export function BacktestPanel({ symbol }: { symbol: string }) {
     const runBacktest = async () => {
         setLoading(true); setError('')
         try {
-            const resp = await fetch('/api/backtest', {
+            const resp = await fetch('/api/backtest/detailed', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ symbol, regime, interval: '1h', limit: 720 }),
             })
@@ -78,6 +88,18 @@ export function BacktestPanel({ symbol }: { symbol: string }) {
                         </div>
                     )}
                 </div>
+            )}
+
+            {result && result.bars && result.bars.length > 0 && (
+                <BacktestChart bars={result.bars} trades={result.trades} />
+            )}
+
+            {result && result.equity_curve && result.equity_curve.length > 0 && (
+                <EquityCurve data={result.equity_curve} />
+            )}
+
+            {result && result.trades && result.trades.length > 0 && (
+                <TradeTable trades={result.trades} />
             )}
         </div>
     )
