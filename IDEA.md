@@ -476,3 +476,85 @@ bnb-hack/
 **Arbiter** is not another "ChatGPT with a wallet." It's a systematic, quantitatively-validated autonomous trader that brings institutional discipline to DeFi. The Rust backtest engine — battle-tested on Indian F&O markets — gives us a technical moat no other hackathon team can replicate in 3 weeks.
 
 **Target prizes: 1st place Track 1 ($10K) + Best TWAK ($2K) + Best Agent Hub ($2K) = $14K potential.**
+
+---
+
+## Validation & Shortcomings (Pre-Build Audit)
+
+### Critical Issues
+
+#### 1. Shorting is NOT Possible on BSC Spot
+
+The IDEA mentions "Momentum Short (Bearish Regime)" and "TRENDING_DOWN → Short momentum." **You cannot short BEP-20 spot tokens via TWAK swaps.** TWAK does buy/sell swaps only.
+
+**Fix:** Bearish regime strategy must be "rotate to stables / reduce exposure / exit longs" — not "go short." Remove all short entry/exit logic from strategy templates or integrate a BSC perps protocol (out of scope for 10 days).
+
+#### 2. CMC OHLCV Data Granularity — Biggest Unknown
+
+The plan assumes 5-minute candles for 149 tokens over 30 days from CMC MCP. CMC's standard API typically provides daily/hourly granularity. 5m candle data for small-cap BSC tokens may not exist.
+
+**Impact:** With hourly candles (720 bars over 30 days), many strategies won't trigger the "min 10 trades" backtest threshold. With daily candles, it's nearly impossible.
+
+**Fix:** Test CMC MCP data availability for a few tokens on Day 1. Fallback plan: use 1h candles, lower the min-trades threshold to 5, or supplement with PancakeSwap subgraph data.
+
+#### 3. Rust Engine Adaptation is Deeper Than "Strip F&O"
+
+The current engine has F&O concepts deeply embedded:
+
+- `RunnerConfig` requires `strike_step`, `lot_size`, `options_bar_types`, `signal_bar_type` vs `execution_bar_type`
+- `BarClassifier` distinguishes signal/execution/options bars
+- `DeferredExit` uses multi-leg triggered-leg logic
+- `StrikeSelector`, `AtmMethod`, `ReentryStrategy` (RE_ASAP, LAZY_LEG) are all options-specific
+- `ProcessorConfig` has `short_trade_action`/`long_trade_action` as `TradeActionConfig` (multi-leg)
+
+**Fix:** Don't try to strip the existing engine. Build a lightweight `CryptoSpotRunner` that reuses `IndicatorRegistry` + `ConditionEvaluator` + basic risk math, but has its own simple single-position state machine (no legs, no strikes, no deferred exits). This is cleaner and faster than surgery on the F&O code.
+
+### High-Risk Issues
+
+#### 4. Rate Limiting on 149-Token Hourly Scan
+
+149 tokens × (OHLCV + indicators + sentiment) = 400+ API calls per hour via CMC. x402 pay-per-call adds latency + cost. Rate limiting could throttle the agent during competition week.
+
+**Fix:** Batch endpoints if CMC supports them. Cache aggressively (indicators don't change per-second). Pre-filter by volume/market-cap (quantitative, no API call needed) to reduce the 149 → top 20-30 before hitting detailed endpoints.
+
+#### 5. Swap Fees Not Modeled in Backtest
+
+The hackathon says "simulated transaction costs apply." The Rust engine currently models options premiums, not DEX swap fees. On BSC:
+
+- PancakeSwap: ~0.25% per swap
+- Slippage: 0.1-1% depending on token liquidity
+- Gas: ~$0.05-0.10 per tx
+
+A strategy showing +2% but paying 0.5% round-trip (entry + exit) = only +1% real. If this isn't in the backtest, the gate will approve unprofitable trades.
+
+**Fix:** Add a `fee_bps` parameter to the crypto runner (default 50bps = 0.5% round-trip). Deduct from P&L before gate evaluation.
+
+#### 6. Competition Registration Should Be Day 2, Not Day 8
+
+Registration must happen before June 22 (trading window opens). The build window ends June 21. If ERC-8004 + `twak compete register` isn't working by Day 9, there's no buffer.
+
+**Fix:** Move registration to Day 2 as a parallel task. It's a one-time transaction — no reason to wait.
+
+#### 7. LLM Latency in the Scan Loop
+
+If LLM regime classification runs per-token: 149 × 3-5s = 7-12 minutes per scan cycle. This is too slow for an hourly loop.
+
+**Fix:** Classify regime ONCE per cycle (market-wide, based on BTC/ETH + Fear & Greed + funding). Apply same regime to all tokens. Token ranking should be purely quantitative (momentum score, volume, ATR — no LLM needed).
+
+### Minor Issues
+
+#### 8. Win Rate Threshold Inconsistency
+
+The architecture diagram says "Win rate > 40%" but the detailed Validation Gate section says "> 35%." Pick one and be consistent.
+
+#### 9. Max DD Confusion (Per-Trade vs Portfolio)
+
+The gate says "Max DD < 15%" (per-strategy backtest). The portfolio cap is 25% (internal) / 30% (DQ). These are different scopes but could confuse implementation. Label them clearly: "Strategy Max DD" vs "Portfolio Max DD."
+
+#### 10. Stablecoins in Buy Universe
+
+The 149-token list includes USDT, USDC, DAI, FDUSD, FRAX, lisUSD, USDD, USD1, USDe, FRXUSD, DUSD, XUSD, TUSD, EURC, etc. You should never "go long" on a stablecoin (it won't appreciate). Filter these from the buy universe and only use them as the base/quote asset.
+
+#### 11. x402 Usage — Verify It's Actually Required
+
+The TWAK special prize awards points for "native x402 usage." Verify whether CMC MCP actually gates data behind x402, or if it's API-key-based with x402 as optional. If x402 isn't required by default, explicitly opt into it (even if an API key would work) to score the special prize points.
