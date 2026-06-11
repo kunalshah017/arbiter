@@ -45,7 +45,8 @@ class TokenScanner:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.get("https://api.binance.com/api/v3/ticker/24hr")
             if resp.status_code != 200:
-                logger.error("scanner.binance_ticker_failed", status=resp.status_code)
+                logger.error("scanner.binance_ticker_failed",
+                             status=resp.status_code)
                 return []
             tickers = resp.json()
 

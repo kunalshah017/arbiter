@@ -39,13 +39,15 @@ class Guardrails:
 
         # Competition drawdown cap
         if self._initial_value and self._initial_value > 0:
-            total_dd = (current_value - self._initial_value) / self._initial_value * 100
+            total_dd = (current_value - self._initial_value) / \
+                self._initial_value * 100
             if total_dd < -settings.competition_drawdown_cap_pct:
                 return False, f"Competition DD cap hit: {total_dd:.1f}%"
 
         # Daily drawdown halt
         if self._daily_start_value and self._daily_start_value > 0:
-            daily_dd = (current_value - self._daily_start_value) / self._daily_start_value * 100
+            daily_dd = (current_value - self._daily_start_value) / \
+                self._daily_start_value * 100
             if daily_dd < -settings.daily_drawdown_halt_pct:
                 self._halted_until = now + 86400
                 logger.warning("guardrails.daily_halt", dd_pct=daily_dd)

@@ -67,7 +67,8 @@ async def cache_ohlcv(db: aiosqlite.Connection, symbol: str, interval: str, bars
     await db.executemany(
         """INSERT OR REPLACE INTO ohlcv_cache (symbol, interval, ts, open, high, low, close, volume)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        [(symbol, interval, b["ts"], b["o"], b["h"], b["l"], b["c"], b["v"]) for b in bars],
+        [(symbol, interval, b["ts"], b["o"], b["h"], b["l"], b["c"], b["v"])
+         for b in bars],
     )
     await db.commit()
 
