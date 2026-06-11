@@ -1,4 +1,10 @@
 """FastAPI server exposing backtest engine and live data to the dashboard."""
+from data.models import Regime
+from agent.gate import validate_strategy
+from agent.strategy import get_strategy_config
+from data.transforms import bars_to_engine_json
+from integrations.binance import BinanceClient
+from arbiter._engine import crypto_backtest
 import json
 import sys
 from pathlib import Path
@@ -8,16 +14,11 @@ from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from arbiter._engine import crypto_backtest
-from integrations.binance import BinanceClient
-from data.transforms import bars_to_engine_json
-from agent.strategy import get_strategy_config
-from agent.gate import validate_strategy
-from data.models import Regime
 
 app = FastAPI(title="Arbiter Dashboard API")
 
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=[
+                   "http://localhost:5173"], allow_methods=["*"], allow_headers=["*"])
 
 binance = BinanceClient()
 
@@ -48,7 +49,8 @@ async def run_backtest(req: BacktestRequest):
         raise HTTPException(400, f"Insufficient data for {req.symbol}")
     engine_bars = bars_to_engine_json(bars)
     config = get_strategy_config(regime)
-    gate_result = validate_strategy(json.dumps(engine_bars), json.dumps(config))
+    gate_result = validate_strategy(
+        json.dumps(engine_bars), json.dumps(config))
     return {
         "symbol": req.symbol, "regime": req.regime, "bars_count": len(bars),
         "passed": gate_result.passed, "total_return_pct": gate_result.total_return_pct,
