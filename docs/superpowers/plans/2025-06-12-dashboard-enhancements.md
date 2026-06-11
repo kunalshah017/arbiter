@@ -4,9 +4,9 @@
 
 **Goal:** Enhance Arbiter with persistent database, realtime streaming, detailed backtest visualization with trade markers, portfolio/agent monitoring, and a striking neobrutalism landing page.
 
-**Architecture:** SQLite for dev + PostgreSQL in Docker for production (shared schema via SQLAlchemy async); WebSocket streaming via FastAPI for realtime OHLCV; lightweight-charts markers for trade visualization; landing page as separate route in the dashboard SPA with animated sections and feature showcase.
+**Architecture:** PostgreSQL in Docker for both dev and production (single consistent database, no dev/prod drift); WebSocket streaming via FastAPI for realtime OHLCV; lightweight-charts markers for trade visualization; landing page as separate route in the dashboard SPA with animated sections and feature showcase.
 
-**Tech Stack:** FastAPI (WebSocket + REST), SQLAlchemy async + aiosqlite/asyncpg, PostgreSQL (Docker), lightweight-charts (markers, line series), React, React Router, Tailwind CSS, Framer Motion (animations), neobrutalism design tokens.
+**Tech Stack:** FastAPI (WebSocket + REST), SQLAlchemy async + asyncpg, PostgreSQL 16 (Docker for dev + prod), lightweight-charts (markers, line series), React, React Router, Tailwind CSS, Framer Motion (animations), neobrutalism design tokens.
 
 ---
 
@@ -1054,7 +1054,7 @@ git add -A && git commit -m "feat: complete dashboard enhancements - realtime, i
 
 | Feature                                     | Task       |
 | ------------------------------------------- | ---------- |
-| Database layer (SQLAlchemy + PostgreSQL)     | Task 8     |
+| Database layer (SQLAlchemy + PostgreSQL)    | Task 8     |
 | Docker PostgreSQL with persistent volume    | Task 8     |
 | Infinite scroll (load more history on left) | Task 3     |
 | Realtime WebSocket OHLCV streaming          | Tasks 2, 3 |
@@ -1081,7 +1081,7 @@ git add -A && git commit -m "feat: complete dashboard enhancements - realtime, i
 
 ```bash
 cd /Users/kunal/arbiter && source .venv/bin/activate
-pip install sqlalchemy[asyncio] asyncpg aiosqlite alembic
+pip install sqlalchemy[asyncio] asyncpg alembic psycopg2-binary
 ```
 
 - [ ] **Step 2: Create database engine and session factory**
@@ -1089,17 +1089,17 @@ pip install sqlalchemy[asyncio] asyncpg aiosqlite alembic
 Create `server/database.py`:
 
 ```python
-"""Async database engine — SQLite for dev, PostgreSQL for production."""
+"""Async database engine — PostgreSQL via Docker for dev and production."""
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "sqlite+aiosqlite:///./arbiter.db"  # Default: local SQLite for dev
+    "postgresql+asyncpg://arbiter:arbiter_secret@localhost:5432/arbiter"
 )
 
-# For PostgreSQL in production: "postgresql+asyncpg://arbiter:arbiter@localhost:5432/arbiter"
+# Same PostgreSQL in Docker for dev and production — no dev/prod drift
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -1287,9 +1287,9 @@ async def get_agent_logs(db: AsyncSession, limit: int = 100) -> list[AgentLog]:
     return list(result.scalars().all())
 ```
 
-- [ ] **Step 5: Update docker-compose.yml with PostgreSQL**
+- [ ] **Step 5: Update docker-compose.yml with PostgreSQL (dev + production)**
 
-Replace `docker-compose.yml`:
+Replace `docker-compose.yml`. Run `docker compose up postgres -d` for local dev, full `docker compose up` for production:
 
 ```yaml
 version: "3.8"
@@ -1321,6 +1321,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    ports:
+      - "8000:8000"
     volumes:
       - ./data:/app/data
     logging:
@@ -1332,6 +1334,8 @@ services:
 volumes:
   pgdata:
 ```
+
+For local dev: `docker compose up postgres -d` then run uvicorn directly. Same PostgreSQL for dev and prod — no drift.
 
 - [ ] **Step 6: Add DB initialization to server startup**
 
@@ -1350,12 +1354,17 @@ async def startup():
 Create `tests/test_database.py`:
 
 ```python
-"""Tests for database layer."""
+"""Tests for database layer. Uses the same PostgreSQL from docker compose."""
 import asyncio
 import pytest
 import os
 
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+# Tests use the same local PostgreSQL (docker compose up postgres -d)
+# Override with a test-specific database to avoid polluting dev data
+os.environ["DATABASE_URL"] = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://arbiter:arbiter_secret@localhost:5432/arbiter"
+)
 
 from server.database import engine, init_db, SessionLocal
 from server.models import Trade, Position
@@ -1458,18 +1467,27 @@ cd /Users/kunal/arbiter/dashboard && npm install react-router-dom framer-motion
 Create `dashboard/src/pages/Landing.tsx`:
 
 ```tsx
-import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Activity, Shield, Zap, BarChart3, Bot, Lock, TrendingUp, Target } from 'lucide-react'
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  Activity,
+  Shield,
+  Zap,
+  BarChart3,
+  Bot,
+  Lock,
+  TrendingUp,
+  Target,
+} from "lucide-react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-}
+};
 
 const stagger = {
   visible: { transition: { staggerChildren: 0.1 } },
-}
+};
 
 export function Landing() {
   return (
@@ -1478,42 +1496,82 @@ export function Landing() {
       <header className="border-b-[3px] border-border">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary border-[2.5px] border-border rounded flex items-center justify-center font-bold text-lg">A</div>
+            <div className="w-10 h-10 bg-primary border-[2.5px] border-border rounded flex items-center justify-center font-bold text-lg">
+              A
+            </div>
             <span className="font-bold text-xl">Arbiter</span>
           </div>
-          <Link to="/app" className="neo-btn neo-btn-primary text-sm">Launch Dashboard →</Link>
+          <Link to="/app" className="neo-btn neo-btn-primary text-sm">
+            Launch Dashboard →
+          </Link>
         </div>
       </header>
 
       {/* Hero Section */}
       <motion.section
-        initial="hidden" animate="visible" variants={stagger}
+        initial="hidden"
+        animate="visible"
+        variants={stagger}
         className="max-w-6xl mx-auto px-6 py-20 text-center"
       >
-        <motion.div variants={fadeUp} className="inline-block neo-badge bg-primary/20 text-text mb-6">
+        <motion.div
+          variants={fadeUp}
+          className="inline-block neo-badge bg-primary/20 text-text mb-6"
+        >
           BNB Hack: AI Trading Agent Edition
         </motion.div>
-        <motion.h1 variants={fadeUp} className="text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6">
-          Trade on <span className="bg-primary px-2 border-[2.5px] border-border inline-block -rotate-1">Evidence</span>,<br/>
+        <motion.h1
+          variants={fadeUp}
+          className="text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6"
+        >
+          Trade on{" "}
+          <span className="bg-primary px-2 border-[2.5px] border-border inline-block -rotate-1">
+            Evidence
+          </span>
+          ,<br />
           Not Belief
         </motion.h1>
-        <motion.p variants={fadeUp} className="text-xl max-w-2xl mx-auto opacity-70 mb-10">
-          An autonomous trading agent that validates every decision against a Rust-powered backtest engine before execution.
-          Institutional quant discipline meets on-chain DeFi.
+        <motion.p
+          variants={fadeUp}
+          className="text-xl max-w-2xl mx-auto opacity-70 mb-10"
+        >
+          An autonomous trading agent that validates every decision against a
+          Rust-powered backtest engine before execution. Institutional quant
+          discipline meets on-chain DeFi.
         </motion.p>
         <motion.div variants={fadeUp} className="flex gap-4 justify-center">
-          <Link to="/app" className="neo-btn neo-btn-primary text-lg px-8 py-3">Open Dashboard</Link>
-          <a href="https://github.com/kunalshah017/arbiter" target="_blank" className="neo-btn bg-white text-lg px-8 py-3">GitHub ↗</a>
+          <Link to="/app" className="neo-btn neo-btn-primary text-lg px-8 py-3">
+            Open Dashboard
+          </Link>
+          <a
+            href="https://github.com/kunalshah017/arbiter"
+            target="_blank"
+            className="neo-btn bg-white text-lg px-8 py-3"
+          >
+            GitHub ↗
+          </a>
         </motion.div>
       </motion.section>
 
       {/* How It Works */}
       <section className="border-t-[3px] border-border bg-white py-20">
         <div className="max-w-6xl mx-auto px-6">
-          <motion.h2 initial="hidden" whileInView="visible" variants={fadeUp} viewport={{ once: true }}
-            className="text-3xl font-black text-center mb-12">How It Works</motion.h2>
-          <motion.div initial="hidden" whileInView="visible" variants={stagger} viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            variants={fadeUp}
+            viewport={{ once: true }}
+            className="text-3xl font-black text-center mb-12"
+          >
+            How It Works
+          </motion.h2>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            variants={stagger}
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center"
+          >
             {[
               { icon: Activity, label: "Market Data", sub: "Binance OHLCV" },
               { icon: Bot, label: "AI Classifies", sub: "GPT-4o-mini" },
@@ -1521,11 +1579,19 @@ export function Landing() {
               { icon: Zap, label: "Rust Validates", sub: "<50ms" },
               { icon: TrendingUp, label: "Execute", sub: "TWAK on BSC" },
             ].map((step, i) => (
-              <motion.div key={i} variants={fadeUp} className="neo-card p-4 text-center">
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                className="neo-card p-4 text-center"
+              >
                 <step.icon size={32} className="mx-auto mb-2 text-secondary" />
                 <p className="font-bold">{step.label}</p>
                 <p className="text-xs font-mono opacity-60">{step.sub}</p>
-                {i < 4 && <div className="hidden md:block absolute right-0 top-1/2 text-2xl font-bold opacity-30">→</div>}
+                {i < 4 && (
+                  <div className="hidden md:block absolute right-0 top-1/2 text-2xl font-bold opacity-30">
+                    →
+                  </div>
+                )}
               </motion.div>
             ))}
           </motion.div>
@@ -1534,19 +1600,59 @@ export function Landing() {
 
       {/* Features Grid */}
       <section className="py-20 max-w-6xl mx-auto px-6">
-        <motion.h2 initial="hidden" whileInView="visible" variants={fadeUp} viewport={{ once: true }}
-          className="text-3xl font-black text-center mb-12">Built Different</motion.h2>
-        <motion.div initial="hidden" whileInView="visible" variants={stagger} viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.h2
+          initial="hidden"
+          whileInView="visible"
+          variants={fadeUp}
+          viewport={{ once: true }}
+          className="text-3xl font-black text-center mb-12"
+        >
+          Built Different
+        </motion.h2>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          variants={stagger}
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {[
-            { icon: Zap, title: "Rust Backtest Engine", desc: "20 technical indicators computed in <50ms. No trade executes without statistical edge." },
-            { icon: Shield, title: "5-Layer Risk Gate", desc: "Expectancy, drawdown, win rate, profit factor, and min trades — ALL must pass." },
-            { icon: BarChart3, title: "Regime-Aware", desc: "AI classifies markets into 5 regimes. Each gets a pre-optimized strategy template." },
-            { icon: Lock, title: "Self-Custody", desc: "Trust Wallet Agent Kit. Your keys, your trades. No centralized exchange." },
-            { icon: Activity, title: "Realtime Monitoring", desc: "Live OHLCV streaming, position tracking, trailing stops every 5 minutes." },
-            { icon: Bot, title: "ERC-8004 Identity", desc: "On-chain agent identity via BNB AI Agent SDK. Verifiable autonomous trading." },
+            {
+              icon: Zap,
+              title: "Rust Backtest Engine",
+              desc: "20 technical indicators computed in <50ms. No trade executes without statistical edge.",
+            },
+            {
+              icon: Shield,
+              title: "5-Layer Risk Gate",
+              desc: "Expectancy, drawdown, win rate, profit factor, and min trades — ALL must pass.",
+            },
+            {
+              icon: BarChart3,
+              title: "Regime-Aware",
+              desc: "AI classifies markets into 5 regimes. Each gets a pre-optimized strategy template.",
+            },
+            {
+              icon: Lock,
+              title: "Self-Custody",
+              desc: "Trust Wallet Agent Kit. Your keys, your trades. No centralized exchange.",
+            },
+            {
+              icon: Activity,
+              title: "Realtime Monitoring",
+              desc: "Live OHLCV streaming, position tracking, trailing stops every 5 minutes.",
+            },
+            {
+              icon: Bot,
+              title: "ERC-8004 Identity",
+              desc: "On-chain agent identity via BNB AI Agent SDK. Verifiable autonomous trading.",
+            },
           ].map((feat, i) => (
-            <motion.div key={i} variants={fadeUp} className="neo-card p-6 hover:!shadow-[6px_6px_0px_var(--color-border)] hover:-translate-y-1 transition-all">
+            <motion.div
+              key={i}
+              variants={fadeUp}
+              className="neo-card p-6 hover:!shadow-[6px_6px_0px_var(--color-border)] hover:-translate-y-1 transition-all"
+            >
               <feat.icon size={28} className="text-secondary mb-3" />
               <h3 className="font-bold text-lg mb-2">{feat.title}</h3>
               <p className="text-sm opacity-70">{feat.desc}</p>
@@ -1558,10 +1664,22 @@ export function Landing() {
       {/* Tech Stack */}
       <section className="border-t-[3px] border-border bg-white py-20">
         <div className="max-w-6xl mx-auto px-6">
-          <motion.h2 initial="hidden" whileInView="visible" variants={fadeUp} viewport={{ once: true }}
-            className="text-3xl font-black text-center mb-12">Tech Stack</motion.h2>
-          <motion.div initial="hidden" whileInView="visible" variants={stagger} viewport={{ once: true }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            variants={fadeUp}
+            viewport={{ once: true }}
+            className="text-3xl font-black text-center mb-12"
+          >
+            Tech Stack
+          </motion.h2>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            variants={stagger}
+            viewport={{ once: true }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          >
             {[
               { name: "Rust + PyO3", role: "Backtest Engine" },
               { name: "Python asyncio", role: "Orchestrator" },
@@ -1572,7 +1690,11 @@ export function Landing() {
               { name: "FastAPI", role: "Dashboard API" },
               { name: "React + Vite", role: "Dashboard UI" },
             ].map((tech, i) => (
-              <motion.div key={i} variants={fadeUp} className="p-4 border-[2.5px] border-border rounded bg-surface text-center">
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                className="p-4 border-[2.5px] border-border rounded bg-surface text-center"
+              >
                 <p className="font-bold font-mono">{tech.name}</p>
                 <p className="text-xs opacity-60">{tech.role}</p>
               </motion.div>
@@ -1583,16 +1705,27 @@ export function Landing() {
 
       {/* Stats */}
       <section className="py-20 max-w-6xl mx-auto px-6">
-        <motion.div initial="hidden" whileInView="visible" variants={stagger} viewport={{ once: true }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          variants={stagger}
+          viewport={{ once: true }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-6"
+        >
           {[
             { value: "<50ms", label: "Backtest Speed" },
             { value: "20", label: "Indicators" },
             { value: "43", label: "Tokens Scanned" },
             { value: "5", label: "Market Regimes" },
           ].map((stat, i) => (
-            <motion.div key={i} variants={fadeUp} className="neo-card p-6 text-center">
-              <p className="text-3xl font-black text-secondary font-mono">{stat.value}</p>
+            <motion.div
+              key={i}
+              variants={fadeUp}
+              className="neo-card p-6 text-center"
+            >
+              <p className="text-3xl font-black text-secondary font-mono">
+                {stat.value}
+              </p>
               <p className="text-sm font-bold opacity-60 mt-1">{stat.label}</p>
             </motion.div>
           ))}
@@ -1602,9 +1735,19 @@ export function Landing() {
       {/* CTA */}
       <section className="border-t-[3px] border-border bg-primary py-16">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-black mb-4">Ready to trade on evidence?</h2>
-          <p className="opacity-70 mb-8">Open the dashboard to run backtests, scan tokens, and validate strategies.</p>
-          <Link to="/app" className="neo-btn bg-white text-lg px-10 py-4 border-border">Launch Dashboard →</Link>
+          <h2 className="text-3xl font-black mb-4">
+            Ready to trade on evidence?
+          </h2>
+          <p className="opacity-70 mb-8">
+            Open the dashboard to run backtests, scan tokens, and validate
+            strategies.
+          </p>
+          <Link
+            to="/app"
+            className="neo-btn bg-white text-lg px-10 py-4 border-border"
+          >
+            Launch Dashboard →
+          </Link>
         </div>
       </section>
 
@@ -1612,18 +1755,32 @@ export function Landing() {
       <footer className="border-t-[3px] border-border py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-primary border-2 border-border rounded flex items-center justify-center font-bold text-xs">A</div>
+            <div className="w-6 h-6 bg-primary border-2 border-border rounded flex items-center justify-center font-bold text-xs">
+              A
+            </div>
             <span className="font-bold">Arbiter</span>
             <span className="text-xs opacity-50 font-mono ml-2">v0.1.0</span>
           </div>
           <div className="flex gap-4 text-sm">
-            <a href="https://github.com/kunalshah017/arbiter" target="_blank" className="hover:text-secondary font-bold">GitHub</a>
-            <a href="https://dorahacks.io/hackathon/bnbhack-twt-cmc" target="_blank" className="hover:text-secondary font-bold">BNB Hack</a>
+            <a
+              href="https://github.com/kunalshah017/arbiter"
+              target="_blank"
+              className="hover:text-secondary font-bold"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://dorahacks.io/hackathon/bnbhack-twt-cmc"
+              target="_blank"
+              className="hover:text-secondary font-bold"
+            >
+              BNB Hack
+            </a>
           </div>
         </div>
       </footer>
     </div>
-  )
+  );
 }
 ```
 
