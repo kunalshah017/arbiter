@@ -36,9 +36,10 @@ def validate_strategy(bars_json: str, config_json: str) -> BacktestGateResult:
             f"Low win rate: {result['win_rate']:.1f}% < {settings.gate_min_win_rate}%")
         passed = False
 
-    if result["profit_factor"] < settings.gate_min_profit_factor:
+    profit_factor = result["profit_factor"] if result["profit_factor"] is not None else 0.0
+    if profit_factor < settings.gate_min_profit_factor:
         reasons.append(
-            f"Low profit factor: {result['profit_factor']:.2f} < {settings.gate_min_profit_factor}")
+            f"Low profit factor: {profit_factor:.2f} < {settings.gate_min_profit_factor}")
         passed = False
 
     if passed:
