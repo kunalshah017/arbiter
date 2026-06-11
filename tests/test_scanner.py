@@ -1,10 +1,9 @@
 """Tests for token scanner ranking."""
+from data.models import Regime, TokenScore
+from agent.scanner import TokenScanner, load_tradeable_tokens
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from agent.scanner import TokenScanner, load_tradeable_tokens
-from data.models import Regime, TokenScore
 
 
 def test_load_tradeable_tokens():
@@ -25,7 +24,8 @@ def test_momentum_score_trending_up_favors_gainers():
     )
     loser = scanner._compute_momentum_score(
         "ETH",
-        {"lastPrice": "3000", "quoteVolume": "1000000000", "priceChangePercent": "-3.0"},
+        {"lastPrice": "3000", "quoteVolume": "1000000000",
+            "priceChangePercent": "-3.0"},
         Regime.TRENDING_UP,
     )
     assert gainer is not None

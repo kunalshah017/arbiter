@@ -1,14 +1,14 @@
 """Tests for risk management."""
+from risk.guardrails import Guardrails
+from risk.sizing import calculate_position_size
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from risk.sizing import calculate_position_size
-from risk.guardrails import Guardrails
-
 
 def test_position_size_capped_at_max():
-    size = calculate_position_size(portfolio_value=10000, expected_return_pct=10.0, max_drawdown_pct=-5.0)
+    size = calculate_position_size(
+        portfolio_value=10000, expected_return_pct=10.0, max_drawdown_pct=-5.0)
     assert size <= 500.0
     assert size > 0
 

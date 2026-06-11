@@ -85,8 +85,10 @@ def test_fees_reduce_returns():
     config_no_fee = _make_config(fee_bps=0)
     config_high_fee = _make_config(fee_bps=100)
 
-    result_no_fee = json.loads(crypto_backtest(json.dumps(bars), json.dumps(config_no_fee)))
-    result_high_fee = json.loads(crypto_backtest(json.dumps(bars), json.dumps(config_high_fee)))
+    result_no_fee = json.loads(crypto_backtest(
+        json.dumps(bars), json.dumps(config_no_fee)))
+    result_high_fee = json.loads(crypto_backtest(
+        json.dumps(bars), json.dumps(config_high_fee)))
 
     # Only compare if both produce trades
     if result_no_fee["num_trades"] > 0 and result_high_fee["num_trades"] > 0:

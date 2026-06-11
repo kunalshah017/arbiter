@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  arbiter:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - arbiter-db:/app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  arbiter-db:

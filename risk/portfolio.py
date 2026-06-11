@@ -59,7 +59,8 @@ class Portfolio:
     def open_position(self, pos: OpenPosition):
         self.positions[pos.symbol] = pos
         self.cash_usd -= pos.value_usd
-        logger.info("portfolio.opened", symbol=pos.symbol, price=pos.entry_price, qty=pos.quantity)
+        logger.info("portfolio.opened", symbol=pos.symbol,
+                    price=pos.entry_price, qty=pos.quantity)
 
     def close_position(self, symbol: str, exit_price: float) -> float:
         pos = self.positions.pop(symbol, None)

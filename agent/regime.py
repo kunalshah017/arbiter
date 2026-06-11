@@ -26,7 +26,8 @@ class RegimeClassifier:
 
     async def classify(self, market_data: dict) -> Regime:
         """Classify current market regime based on global metrics."""
-        data_str = "\n".join(f"- {k}: {v}" for k, v in market_data.items() if v is not None)
+        data_str = "\n".join(f"- {k}: {v}" for k,
+                             v in market_data.items() if v is not None)
         prompt = REGIME_PROMPT.format(market_data=data_str)
 
         try:

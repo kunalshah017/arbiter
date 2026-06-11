@@ -44,7 +44,8 @@ class PositionMonitor:
 
     async def _execute_exit(self, symbol: str, pos: OpenPosition, price: float, reason: str):
         """Execute position exit via TWAK."""
-        logger.info("monitor.exiting", symbol=symbol, reason=reason, price=price)
+        logger.info("monitor.exiting", symbol=symbol,
+                    reason=reason, price=price)
         result = await self._twak.swap(
             amount=pos.quantity,
             from_token=symbol,
@@ -53,4 +54,5 @@ class PositionMonitor:
         )
         if result:
             pnl = self._portfolio.close_position(symbol, price)
-            logger.info("monitor.exit_complete", symbol=symbol, pnl_pct=pnl, reason=reason)
+            logger.info("monitor.exit_complete", symbol=symbol,
+                        pnl_pct=pnl, reason=reason)

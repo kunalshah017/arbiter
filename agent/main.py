@@ -52,7 +52,8 @@ class Arbiter:
         # Get initial portfolio value
         portfolio_data = await self.twak.get_portfolio()
         if portfolio_data:
-            initial_value = float(portfolio_data.get("total_value_usd", settings.initial_capital))
+            initial_value = float(portfolio_data.get(
+                "total_value_usd", settings.initial_capital))
         else:
             initial_value = settings.initial_capital
 
@@ -98,7 +99,8 @@ class Arbiter:
     async def _scan_and_trade(self):
         """Core trading logic: scan → classify → validate → execute."""
         # 1. Check if trading allowed
-        can_trade, reason = self.guardrails.can_trade(self.portfolio.total_value)
+        can_trade, reason = self.guardrails.can_trade(
+            self.portfolio.total_value)
         if not can_trade:
             logger.info("arbiter.trading_blocked", reason=reason)
             return
@@ -132,7 +134,8 @@ class Arbiter:
             )
             can_add, reason = self.guardrails.check_exposure(
                 self.portfolio.exposure_pct,
-                (position_size / self.portfolio.total_value * 100) if self.portfolio.total_value > 0 else 0,
+                (position_size / self.portfolio.total_value *
+                 100) if self.portfolio.total_value > 0 else 0,
             )
             if not can_add:
                 logger.info("arbiter.exposure_limit", reason=reason)
@@ -154,7 +157,8 @@ class Arbiter:
                     executed += 1
                     self._trades_today += 1
             else:
-                logger.debug("arbiter.gate_rejected", symbol=token.symbol, reasons=gate_result.rejection_reasons)
+                logger.debug("arbiter.gate_rejected", symbol=token.symbol,
+                             reasons=gate_result.rejection_reasons)
 
     async def _fetch_market_context(self) -> dict:
         """Fetch global market data for regime classification."""
@@ -222,8 +226,10 @@ class Arbiter:
                 symbol=symbol,
                 entry_price=price,
                 quantity=quantity,
-                stop_loss=price - (config["stop_loss_atr_multiple"] * atr_approx),
-                take_profit=price + (config["take_profit_atr_multiple"] * atr_approx),
+                stop_loss=price -
+                (config["stop_loss_atr_multiple"] * atr_approx),
+                take_profit=price +
+                (config["take_profit_atr_multiple"] * atr_approx),
                 strategy=config.get("name", "unknown"),
             )
             self.portfolio.open_position(pos)

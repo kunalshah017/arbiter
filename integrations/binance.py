@@ -53,7 +53,8 @@ class BinanceClient:
                 logger.debug("binance.fetched", symbol=symbol, bars=len(bars))
                 return bars
             else:
-                logger.warning("binance.error", symbol=symbol, status=resp.status_code)
+                logger.warning("binance.error", symbol=symbol,
+                               status=resp.status_code)
                 return []
         except Exception as e:
             logger.error("binance.request_failed", symbol=symbol, error=str(e))

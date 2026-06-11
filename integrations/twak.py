@@ -73,7 +73,8 @@ class TWAKExecutor:
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
 
             if proc.returncode != 0:
-                logger.error("twak.cmd_failed", cmd=" ".join(cmd), stderr=stderr.decode()[:200])
+                logger.error("twak.cmd_failed", cmd=" ".join(
+                    cmd), stderr=stderr.decode()[:200])
                 return None
 
             output = stdout.decode().strip()

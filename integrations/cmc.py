@@ -35,7 +35,8 @@ class CMCClient:
                 result = resp.json()
                 return result.get("result", {}).get("content", [])
             else:
-                logger.error("cmc.mcp_error", status=resp.status_code, tool=tool_name)
+                logger.error("cmc.mcp_error",
+                             status=resp.status_code, tool=tool_name)
                 return None
         except Exception as e:
             logger.error("cmc.request_failed", tool=tool_name, error=str(e))
