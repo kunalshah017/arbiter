@@ -48,7 +48,8 @@ class BacktestRequest(BaseModel):
 async def get_ohlcv(symbol: str, interval: str = "1h", limit: int = 200, endTime: int | None = None):
     if endTime:
         import httpx as httpx_client
-        params = {"symbol": f"{symbol.upper()}USDT", "interval": interval, "limit": limit, "endTime": endTime}
+        params = {"symbol": f"{symbol.upper()}USDT", "interval": interval,
+                  "limit": limit, "endTime": endTime}
         async with httpx_client.AsyncClient(timeout=15.0) as http:
             resp = await http.get("https://api.binance.com/api/v3/klines", params=params)
             if resp.status_code == 200:
@@ -130,7 +131,8 @@ async def run_backtest_detailed(req: BacktestRequest):
     engine_bars = bars_to_engine_json(bars)
     config = get_strategy_config(regime)
 
-    raw_result = json.loads(crypto_backtest(json.dumps(engine_bars), json.dumps(config)))
+    raw_result = json.loads(crypto_backtest(
+        json.dumps(engine_bars), json.dumps(config)))
 
     # Build trade details with timestamps from bars
     trades = []
@@ -142,10 +144,14 @@ async def run_backtest_detailed(req: BacktestRequest):
     for i, pnl in enumerate(trade_pnls):
         entry_bar = min(bar_idx, len(engine_bars) - 1)
         exit_bar = min(entry_bar + max(int(avg_bars), 1), len(engine_bars) - 1)
-        entry_ts = engine_bars[entry_bar]["ts"] if entry_bar < len(engine_bars) else 0
-        exit_ts = engine_bars[exit_bar]["ts"] if exit_bar < len(engine_bars) else 0
-        entry_price = engine_bars[entry_bar]["c"] if entry_bar < len(engine_bars) else 0
-        exit_price = engine_bars[exit_bar]["c"] if exit_bar < len(engine_bars) else 0
+        entry_ts = engine_bars[entry_bar]["ts"] if entry_bar < len(
+            engine_bars) else 0
+        exit_ts = engine_bars[exit_bar]["ts"] if exit_bar < len(
+            engine_bars) else 0
+        entry_price = engine_bars[entry_bar]["c"] if entry_bar < len(
+            engine_bars) else 0
+        exit_price = engine_bars[exit_bar]["c"] if exit_bar < len(
+            engine_bars) else 0
         trades.append({
             "id": i + 1,
             "entry_ts": entry_ts,
@@ -157,7 +163,8 @@ async def run_backtest_detailed(req: BacktestRequest):
         })
         bar_idx = exit_bar + 1
 
-    gate_result = validate_strategy(json.dumps(engine_bars), json.dumps(config))
+    gate_result = validate_strategy(
+        json.dumps(engine_bars), json.dumps(config))
 
     return {
         "symbol": req.symbol,
@@ -184,7 +191,8 @@ async def get_portfolio():
         "cash_usd": 850.0,
         "total_value_usd": 1000.0,
         "positions": [
-            {"symbol": "BNB", "entry_price": 590.0, "quantity": 0.085, "current_price": 600.0, "pnl_pct": 1.69, "stop_loss": 578.0, "take_profit": 640.0},
+            {"symbol": "BNB", "entry_price": 590.0, "quantity": 0.085, "current_price": 600.0,
+                "pnl_pct": 1.69, "stop_loss": 578.0, "take_profit": 640.0},
         ],
         "exposure_pct": 15.0,
         "daily_pnl_pct": 0.42,

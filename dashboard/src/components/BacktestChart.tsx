@@ -11,7 +11,7 @@ export function BacktestChart({ bars, trades }: { bars: Bar[]; trades: Trade[] }
 
     useEffect(() => {
         if (!chartRef.current || bars.length === 0) return
-        if (chartInstance.current) { try { chartInstance.current.remove() } catch {} chartInstance.current = null }
+        if (chartInstance.current) { try { chartInstance.current.remove() } catch { } chartInstance.current = null }
 
         const container = chartRef.current
         const chart = createChart(container, {
@@ -58,7 +58,7 @@ export function BacktestChart({ bars, trades }: { bars: Bar[]; trades: Trade[] }
 
         return () => {
             window.removeEventListener('resize', handleResize)
-            if (chartInstance.current === chart) { chartInstance.current = null; try { chart.remove() } catch {} }
+            if (chartInstance.current === chart) { chartInstance.current = null; try { chart.remove() } catch { } }
         }
     }, [bars, trades])
 
