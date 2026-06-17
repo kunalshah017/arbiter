@@ -4,19 +4,24 @@
 
 **Goal:** Replace Arbiter's static 5-strategy templates with a closed-loop multi-agent optimization system inspired by NVIDIA's signal discovery pattern — where an LLM generates strategy variations, the Rust engine evaluates them, and an advisor LLM provides feedback to iterate until the gate passes or max attempts exhausted.
 
-**Architecture:** Three specialized LLM agents (Strategy Generator, Optimization Advisor, Regime Classifier) powered by free NVIDIA NIM models via OpenAI-compatible API. The Strategy Generator (DeepSeek V4 Flash — creative, fast JSON generation) proposes indicator/condition parameter variations seeded from base templates. The Rust engine evaluates each. The Advisor (Nemotron 3 Ultra 550B — best reasoning) reviews failures and suggests concrete improvements. The Regime Classifier switches from GPT-4o-mini to DeepSeek V4 Flash (free, same quality). State persists in PostgreSQL so the agent learns across sessions. The existing gate thresholds remain the acceptance criteria.
+**Architecture:** Three specialized LLM agents (Strategy Generator, Optimization Advisor, Regime Classifier) powered by free models via OpenAI-compatible APIs. Primary: NVIDIA NIM (DeepSeek V4 Flash + Nemotron 3 Ultra). Fallback: Google Gemini 3.5 Flash (free tier). No OpenAI API key required. The Strategy Generator proposes indicator/condition parameter variations seeded from base templates. The Rust engine evaluates each. The Advisor reviews failures and suggests concrete improvements. State persists in PostgreSQL so the agent learns across sessions.
 
-**Tech Stack:** Python asyncio, NVIDIA NIM free API (DeepSeek V4 Flash + Nemotron 3 Ultra via OpenAI-compatible endpoint at `integrate.api.nvidia.com`), existing Rust backtest engine, PostgreSQL for optimization history, existing FastAPI dashboard endpoints.
+**Tech Stack:** Python asyncio, NVIDIA NIM free API + Google Gemini free API (both OpenAI-compatible), existing Rust backtest engine, PostgreSQL for optimization history, existing FastAPI dashboard endpoints.
 
-**LLM Model Selection:**
+**LLM Model Selection (priority order):**
 
-| Agent | Model | Endpoint | Why |
-|-------|-------|----------|-----|
-| Strategy Generator | `deepseek-ai/deepseek-v4-flash` | Free NIM | 284B MoE, fast, excellent structured JSON output |
-| Optimization Advisor | `nvidia/nemotron-3-ultra-550b-a55b` | Free NIM | 550B flagship, strongest reasoning for analysis |
-| Regime Classifier | `deepseek-ai/deepseek-v4-flash` | Free NIM | Replaces GPT-4o-mini — same quality, zero cost |
+| Agent                | Primary (NVIDIA NIM)                | Fallback (Google Gemini)   |
+| -------------------- | ----------------------------------- | -------------------------- |
+| Strategy Generator   | `deepseek-ai/deepseek-v4-flash`     | `gemini-3.5-flash`         |
+| Optimization Advisor | `nvidia/nemotron-3-ultra-550b-a55b` | `gemini-3.5-flash`         |
+| Regime Classifier    | `deepseek-ai/deepseek-v4-flash`     | `gemini-3.5-flash`         |
 
-All models use OpenAI-compatible API: `base_url="https://integrate.api.nvidia.com/v1/"`, auth via `NVIDIA_API_KEY`.
+**Provider priority:** `NVIDIA_API_KEY` → `GOOGLE_API_KEY` (set whichever you have)
+
+| Provider | Base URL | Key env var | Cost |
+|----------|----------|-------------|------|
+| NVIDIA NIM | `https://integrate.api.nvidia.com/v1/` | `NVIDIA_API_KEY` | Free |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `GOOGLE_API_KEY` | Free tier |
 
 ---
 
@@ -137,19 +142,29 @@ The previous strategies were backtested. Here are the results and advisor sugges
 Use this feedback to improve your strategy variations. Try to BEAT the best result."""
 
 
-# NVIDIA NIM model for strategy generation (creative, fast JSON output)
-STRATEGY_MODEL = "deepseek-ai/deepseek-v4-flash"
+# LLM provider config — NVIDIA NIM (primary) or Google Gemini (fallback)
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1/"
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+STRATEGY_MODEL_NVIDIA = "deepseek-ai/deepseek-v4-flash"
+STRATEGY_MODEL_GEMINI = "gemini-3.5-flash"
+
+
+def _get_llm_client_and_model(nvidia_model: str, gemini_model: str):
+    """Resolve LLM client based on available API keys. NVIDIA NIM > Google Gemini."""
+    if settings.nvidia_api_key:
+        return AsyncOpenAI(api_key=settings.nvidia_api_key, base_url=NVIDIA_BASE_URL), nvidia_model
+    if settings.google_api_key:
+        return AsyncOpenAI(api_key=settings.google_api_key, base_url=GEMINI_BASE_URL), gemini_model
+    raise ValueError("Set NVIDIA_API_KEY or GOOGLE_API_KEY in .env")
 
 
 class StrategyGenerator:
     """Generates strategy config variations using an LLM."""
 
     def __init__(self):
-        api_key = settings.nvidia_api_key or settings.openai_api_key
-        base_url = NVIDIA_BASE_URL if settings.nvidia_api_key else None
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        self._model = STRATEGY_MODEL if settings.nvidia_api_key else "gpt-4o-mini"
+        self._client, self._model = _get_llm_client_and_model(
+            STRATEGY_MODEL_NVIDIA, STRATEGY_MODEL_GEMINI
+        )
 
     async def generate_variants(
         self,
@@ -414,19 +429,21 @@ Strategy: {strategy_name}
 Try to BEAT this result. Build on what worked."""
 
 
-# NVIDIA NIM model for optimization advice (strongest reasoning)
-ADVISOR_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
+# LLM provider config — NVIDIA NIM (primary) or Google Gemini (fallback)
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1/"
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+ADVISOR_MODEL_NVIDIA = "nvidia/nemotron-3-ultra-550b-a55b"
+ADVISOR_MODEL_GEMINI = "gemini-3.5-flash"
 
 
 class OptimizationAdvisor:
     """Reviews failed backtests and suggests strategy improvements."""
 
     def __init__(self):
-        api_key = settings.nvidia_api_key or settings.openai_api_key
-        base_url = NVIDIA_BASE_URL if settings.nvidia_api_key else None
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        self._model = ADVISOR_MODEL if settings.nvidia_api_key else "gpt-4o-mini"
+        from agent.strategy_generator import _get_llm_client_and_model
+        self._client, self._model = _get_llm_client_and_model(
+            ADVISOR_MODEL_NVIDIA, ADVISOR_MODEL_GEMINI
+        )
 
     async def generate_feedback(
         self,
@@ -530,8 +547,9 @@ This is the core orchestrator that wires Generator → Backtest → Advisor in a
 Add these fields to the Settings class:
 
 ```python
-    # NVIDIA NIM API (free models — build.nvidia.com)
+    # LLM API keys (set at least one — NVIDIA NIM or Google Gemini)
     nvidia_api_key: str = ""
+    google_api_key: str = ""
 
     # Optimizer settings
     optimizer_max_iterations: int = 3
@@ -540,9 +558,13 @@ Add these fields to the Settings class:
 ```
 
 Also add to `.env.example`:
+
 ```bash
-# NVIDIA NIM API (free models from build.nvidia.com)
+# LLM API (set at least one — both are free)
+# NVIDIA NIM: get key at https://build.nvidia.com/settings/api-keys
 NVIDIA_API_KEY=nvapi-...
+# Google Gemini: get key at https://aistudio.google.com/apikey
+GOOGLE_API_KEY=AIza...
 ```
 
 - [ ] **Step 2: Add `validate_strategy_detailed()` to `agent/gate.py`**
@@ -1314,7 +1336,7 @@ git add -A && git commit -m "chore: final verification fixes for optimizer integ
 
 ## Design Decisions
 
-1. **NVIDIA NIM free models** — DeepSeek V4 Flash for generation, Nemotron 3 Ultra for advising. Falls back to GPT-4o-mini if `NVIDIA_API_KEY` not set.
+1. **Free LLM providers only** — NVIDIA NIM (DeepSeek V4 Flash + Nemotron 3 Ultra) as primary, Google Gemini 3.5 Flash as fallback. No OpenAI key required. Set whichever API key you have.
 2. **Base template always included** — iteration 1 tests the base + LLM variants. This ensures we never do worse than before.
 3. **`optimizer_enabled` flag** — can disable to fall back to static strategies without code changes.
 4. **Seed feedback from DB** — `get_last_feedback_for_regime()` lets the optimizer resume from where it left off across sessions.
