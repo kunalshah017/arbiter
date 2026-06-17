@@ -36,7 +36,8 @@ class Position(Base):
 class PortfolioSnapshot(Base):
     __tablename__ = "portfolio_snapshots"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), index=True)
     total_value_usd: Mapped[float] = mapped_column(Float)
     cash_usd: Mapped[float] = mapped_column(Float)
     num_positions: Mapped[int] = mapped_column(Integer)
@@ -60,7 +61,8 @@ class OHLCVCache(Base):
 class AgentLog(Base):
     __tablename__ = "agent_logs"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), index=True)
     event: Mapped[str] = mapped_column(String(50))
     details: Mapped[str] = mapped_column(Text, nullable=True)
     regime: Mapped[str] = mapped_column(String(30), nullable=True)

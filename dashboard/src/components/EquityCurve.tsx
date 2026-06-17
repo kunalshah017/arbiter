@@ -14,7 +14,7 @@ export function EquityCurve({ data }: { data: EquityPoint[] }) {
 
     useEffect(() => {
         if (!chartRef.current || data.length === 0) return
-        if (chartInstance.current) { try { chartInstance.current.remove() } catch {} chartInstance.current = null }
+        if (chartInstance.current) { try { chartInstance.current.remove() } catch { } chartInstance.current = null }
 
         const container = chartRef.current
         const chart = createChart(container, {
@@ -39,7 +39,7 @@ export function EquityCurve({ data }: { data: EquityPoint[] }) {
 
         return () => {
             window.removeEventListener('resize', handleResize)
-            if (chartInstance.current === chart) { chartInstance.current = null; try { chart.remove() } catch {} }
+            if (chartInstance.current === chart) { chartInstance.current = null; try { chart.remove() } catch { } }
         }
     }, [data, profitable])
 

@@ -55,7 +55,8 @@ async def save_snapshot(db: AsyncSession, **kwargs) -> PortfolioSnapshot:
 async def get_snapshots(db: AsyncSession, hours: int = 24) -> list[PortfolioSnapshot]:
     since = datetime.utcnow() - timedelta(hours=hours)
     result = await db.execute(
-        select(PortfolioSnapshot).where(PortfolioSnapshot.timestamp >= since).order_by(PortfolioSnapshot.timestamp)
+        select(PortfolioSnapshot).where(PortfolioSnapshot.timestamp >=
+                                        since).order_by(PortfolioSnapshot.timestamp)
     )
     return list(result.scalars().all())
 

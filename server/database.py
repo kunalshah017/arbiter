@@ -9,7 +9,8 @@ DATABASE_URL = os.getenv(
 )
 
 engine = create_async_engine(DATABASE_URL, echo=False)
-SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+SessionLocal = async_sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False)
 
 
 class Base(DeclarativeBase):
