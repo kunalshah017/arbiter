@@ -4,9 +4,19 @@
 
 **Goal:** Replace Arbiter's static 5-strategy templates with a closed-loop multi-agent optimization system inspired by NVIDIA's signal discovery pattern — where an LLM generates strategy variations, the Rust engine evaluates them, and an advisor LLM provides feedback to iterate until the gate passes or max attempts exhausted.
 
-**Architecture:** Three specialized LLM agents (Strategy Generator, Code Translator, Optimization Advisor) wrapped in a closed-loop orchestrator. The Strategy Generator proposes indicator/condition parameter variations seeded from base templates. The Rust engine evaluates each. The Advisor reviews failures and suggests concrete improvements. State persists in PostgreSQL so the agent learns across sessions. The existing gate thresholds remain the acceptance criteria.
+**Architecture:** Three specialized LLM agents (Strategy Generator, Optimization Advisor, Regime Classifier) powered by free NVIDIA NIM models via OpenAI-compatible API. The Strategy Generator (DeepSeek V4 Flash — creative, fast JSON generation) proposes indicator/condition parameter variations seeded from base templates. The Rust engine evaluates each. The Advisor (Nemotron 3 Ultra 550B — best reasoning) reviews failures and suggests concrete improvements. The Regime Classifier switches from GPT-4o-mini to DeepSeek V4 Flash (free, same quality). State persists in PostgreSQL so the agent learns across sessions. The existing gate thresholds remain the acceptance criteria.
 
-**Tech Stack:** Python asyncio, OpenAI GPT-4o-mini (all three agents — cheap enough for iteration), existing Rust backtest engine, PostgreSQL for optimization history, existing FastAPI dashboard endpoints.
+**Tech Stack:** Python asyncio, NVIDIA NIM free API (DeepSeek V4 Flash + Nemotron 3 Ultra via OpenAI-compatible endpoint at `integrate.api.nvidia.com`), existing Rust backtest engine, PostgreSQL for optimization history, existing FastAPI dashboard endpoints.
+
+**LLM Model Selection:**
+
+| Agent | Model | Endpoint | Why |
+|-------|-------|----------|-----|
+| Strategy Generator | `deepseek-ai/deepseek-v4-flash` | Free NIM | 284B MoE, fast, excellent structured JSON output |
+| Optimization Advisor | `nvidia/nemotron-3-ultra-550b-a55b` | Free NIM | 550B flagship, strongest reasoning for analysis |
+| Regime Classifier | `deepseek-ai/deepseek-v4-flash` | Free NIM | Replaces GPT-4o-mini — same quality, zero cost |
+
+All models use OpenAI-compatible API: `base_url="https://integrate.api.nvidia.com/v1/"`, auth via `NVIDIA_API_KEY`.
 
 ---
 
@@ -79,7 +89,7 @@ Add this function right after the existing `get_strategy_config()`.
 
 - [ ] **Step 2: Create `agent/strategy_generator.py`**
 
-```python
+````python
 """Strategy Generator Agent — produces strategy config variations using LLM."""
 import json
 import structlog
@@ -127,11 +137,19 @@ The previous strategies were backtested. Here are the results and advisor sugges
 Use this feedback to improve your strategy variations. Try to BEAT the best result."""
 
 
+# NVIDIA NIM model for strategy generation (creative, fast JSON output)
+STRATEGY_MODEL = "deepseek-ai/deepseek-v4-flash"
+NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1/"
+
+
 class StrategyGenerator:
     """Generates strategy config variations using an LLM."""
 
     def __init__(self):
-        self._client = AsyncOpenAI(api_key=settings.openai_api_key)
+        api_key = settings.nvidia_api_key or settings.openai_api_key
+        base_url = NVIDIA_BASE_URL if settings.nvidia_api_key else None
+        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        self._model = STRATEGY_MODEL if settings.nvidia_api_key else "gpt-4o-mini"
 
     async def generate_variants(
         self,
@@ -161,7 +179,7 @@ class StrategyGenerator:
 
         try:
             response = await self._client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=self._model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=2000,
                 temperature=0.7,  # Creative for variation
@@ -247,7 +265,7 @@ class StrategyGenerator:
             "warmup_bars": 30,
             "atr_period": 14,
         }
-```
+````
 
 - [ ] **Step 3: Write test for strategy generator**
 
@@ -396,11 +414,19 @@ Strategy: {strategy_name}
 Try to BEAT this result. Build on what worked."""
 
 
+# NVIDIA NIM model for optimization advice (strongest reasoning)
+ADVISOR_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
+NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1/"
+
+
 class OptimizationAdvisor:
     """Reviews failed backtests and suggests strategy improvements."""
 
     def __init__(self):
-        self._client = AsyncOpenAI(api_key=settings.openai_api_key)
+        api_key = settings.nvidia_api_key or settings.openai_api_key
+        base_url = NVIDIA_BASE_URL if settings.nvidia_api_key else None
+        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        self._model = ADVISOR_MODEL if settings.nvidia_api_key else "gpt-4o-mini"
 
     async def generate_feedback(
         self,
@@ -447,7 +473,7 @@ class OptimizationAdvisor:
 
         try:
             response = await self._client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=self._model,
                 messages=[
                     {"role": "system", "content": "You are a concise quantitative strategy optimization advisor."},
                     {"role": "user", "content": prompt},
@@ -504,10 +530,19 @@ This is the core orchestrator that wires Generator → Backtest → Advisor in a
 Add these fields to the Settings class:
 
 ```python
+    # NVIDIA NIM API (free models — build.nvidia.com)
+    nvidia_api_key: str = ""
+
     # Optimizer settings
     optimizer_max_iterations: int = 3
     optimizer_num_variants: int = 3
     optimizer_enabled: bool = True
+```
+
+Also add to `.env.example`:
+```bash
+# NVIDIA NIM API (free models from build.nvidia.com)
+NVIDIA_API_KEY=nvapi-...
 ```
 
 - [ ] **Step 2: Add `validate_strategy_detailed()` to `agent/gate.py`**
@@ -1015,6 +1050,7 @@ git add -A && git commit -m "feat(db): persist optimization history + /api/optim
 - [ ] **Step 1: Create `dashboard/src/components/OptimizerPanel.tsx`**
 
 A panel that lets you run the optimization loop from the dashboard, showing:
+
 - Regime selector + Run button
 - Live iteration progress (iteration 1/3... 2/3... 3/3)
 - All attempts table with metrics
@@ -1266,19 +1302,19 @@ git add -A && git commit -m "chore: final verification fixes for optimizer integ
 
 ## Summary of Deliverables
 
-| Feature | Task |
-|---------|------|
+| Feature                                            | Task   |
+| -------------------------------------------------- | ------ |
 | Strategy Generator Agent (LLM → config variations) | Task 1 |
-| Optimization Advisor Agent (backtest → feedback) | Task 2 |
-| Closed-loop Optimizer Orchestrator | Task 3 |
-| Integration into main agent scan loop | Task 4 |
-| PostgreSQL persistence (optimization history) | Task 5 |
-| Dashboard Optimizer panel (run + view iterations) | Task 6 |
-| Full verification | Task 7 |
+| Optimization Advisor Agent (backtest → feedback)   | Task 2 |
+| Closed-loop Optimizer Orchestrator                 | Task 3 |
+| Integration into main agent scan loop              | Task 4 |
+| PostgreSQL persistence (optimization history)      | Task 5 |
+| Dashboard Optimizer panel (run + view iterations)  | Task 6 |
+| Full verification                                  | Task 7 |
 
 ## Design Decisions
 
-1. **Same model (GPT-4o-mini) for all agents** — cheap enough for iteration. Can split later if needed.
+1. **NVIDIA NIM free models** — DeepSeek V4 Flash for generation, Nemotron 3 Ultra for advising. Falls back to GPT-4o-mini if `NVIDIA_API_KEY` not set.
 2. **Base template always included** — iteration 1 tests the base + LLM variants. This ensures we never do worse than before.
 3. **`optimizer_enabled` flag** — can disable to fall back to static strategies without code changes.
 4. **Seed feedback from DB** — `get_last_feedback_for_regime()` lets the optimizer resume from where it left off across sessions.
