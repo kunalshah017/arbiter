@@ -65,9 +65,13 @@ class StrategyGenerator:
     """Generates strategy config variations using an LLM."""
 
     def __init__(self):
-        self._client, self._model = _get_llm_client_and_model(
-            STRATEGY_MODEL_NVIDIA, STRATEGY_MODEL_GEMINI
-        )
+        try:
+            self._client, self._model = _get_llm_client_and_model(
+                STRATEGY_MODEL_NVIDIA, STRATEGY_MODEL_GEMINI
+            )
+        except ValueError:
+            logger.warning("strategy_gen.no_api_keys", msg="No LLM API keys found, will use base template fallback")
+            self._client, self._model = None, None
 
     async def generate_variants(
         self,
@@ -85,6 +89,10 @@ class StrategyGenerator:
         Returns:
             List of strategy config dicts ready for the Rust engine.
         """
+        if not self._client:
+            logger.warning("strategy_gen.fallback", msg="No LLM client, using base template")
+            return [self._template_to_config(base_template)]
+
         feedback_section = ""
         if feedback:
             feedback_section = FEEDBACK_TEMPLATE.format(feedback=feedback)

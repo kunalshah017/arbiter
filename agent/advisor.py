@@ -57,9 +57,13 @@ class OptimizationAdvisor:
 
     def __init__(self):
         from agent.strategy_generator import _get_llm_client_and_model
-        self._client, self._model = _get_llm_client_and_model(
-            ADVISOR_MODEL_NVIDIA, ADVISOR_MODEL_GEMINI
-        )
+        try:
+            self._client, self._model = _get_llm_client_and_model(
+                ADVISOR_MODEL_NVIDIA, ADVISOR_MODEL_GEMINI
+            )
+        except ValueError:
+            logger.warning("advisor.no_api_keys", msg="No LLM API keys found, will use static fallback feedback")
+            self._client, self._model = None, None
 
     async def generate_feedback(
         self,
@@ -79,6 +83,10 @@ class OptimizationAdvisor:
         Returns:
             String of actionable feedback bullets.
         """
+        if not self._client:
+            logger.warning("advisor.fallback", msg="No LLM client, using static feedback")
+            return "- Try wider indicator periods\n- Loosen entry thresholds\n- Reduce SL multiple"
+
         best_section = ""
         if best_result:
             best_section = BEST_SO_FAR_TEMPLATE.format(
