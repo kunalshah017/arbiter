@@ -33,3 +33,12 @@ def get_strategy_config(regime: Regime) -> dict:
         "warmup_bars": 30,
         "atr_period": 14,
     }
+
+
+def get_base_template(regime: Regime) -> dict:
+    """Get the raw strategy template for a regime (for LLM modification)."""
+    strategies = _load_strategies()
+    template = strategies.get(regime.value)
+    if template is None:
+        template = strategies["choppy"]
+    return template
