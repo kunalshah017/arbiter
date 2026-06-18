@@ -13,6 +13,15 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str = ""
 
+    # LLM API keys (set at least one — NVIDIA NIM or Google Gemini)
+    nvidia_api_key: str = ""
+    google_api_key: str = ""
+
+    # Optimizer settings
+    optimizer_max_iterations: int = 3
+    optimizer_num_variants: int = 3
+    optimizer_enabled: bool = True
+
     # BNB SDK / Wallet
     arbiter_private_key: str = ""
     arbiter_wallet_password: str = ""
