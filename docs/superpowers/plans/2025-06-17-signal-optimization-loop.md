@@ -10,17 +10,17 @@
 
 **LLM Model Selection (priority order):**
 
-| Agent                | Primary (NVIDIA NIM)                | Fallback (Google Gemini)   |
-| -------------------- | ----------------------------------- | -------------------------- |
-| Strategy Generator   | `deepseek-ai/deepseek-v4-flash`     | `gemini-3.5-flash`         |
-| Optimization Advisor | `nvidia/nemotron-3-ultra-550b-a55b` | `gemini-3.5-flash`         |
-| Regime Classifier    | `deepseek-ai/deepseek-v4-flash`     | `gemini-3.5-flash`         |
+| Agent                | Primary (NVIDIA NIM)                | Fallback (Google Gemini) |
+| -------------------- | ----------------------------------- | ------------------------ |
+| Strategy Generator   | `deepseek-ai/deepseek-v4-flash`     | `gemini-3.5-flash`       |
+| Optimization Advisor | `nvidia/nemotron-3-ultra-550b-a55b` | `gemini-3.5-flash`       |
+| Regime Classifier    | `deepseek-ai/deepseek-v4-flash`     | `gemini-3.5-flash`       |
 
 **Provider priority:** `NVIDIA_API_KEY` → `GOOGLE_API_KEY` (set whichever you have)
 
-| Provider | Base URL | Key env var | Cost |
-|----------|----------|-------------|------|
-| NVIDIA NIM | `https://integrate.api.nvidia.com/v1/` | `NVIDIA_API_KEY` | Free |
+| Provider      | Base URL                                                   | Key env var      | Cost      |
+| ------------- | ---------------------------------------------------------- | ---------------- | --------- |
+| NVIDIA NIM    | `https://integrate.api.nvidia.com/v1/`                     | `NVIDIA_API_KEY` | Free      |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `GOOGLE_API_KEY` | Free tier |
 
 ---
