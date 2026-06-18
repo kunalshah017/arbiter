@@ -12,7 +12,7 @@ describe('BacktestPanel', () => {
     })
 
     it('displays results after successful backtest', async () => {
-        vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+        vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
             ok: true, json: async () => ({
                 symbol: 'BNB', regime: 'trending_up', bars_count: 720, passed: true,
                 total_return_pct: 5.2, max_drawdown_pct: -3.1, win_rate: 65.0,
@@ -30,7 +30,7 @@ describe('BacktestPanel', () => {
     })
 
     it('displays rejection reasons when gate fails', async () => {
-        vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+        vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
             ok: true, json: async () => ({
                 symbol: 'BNB', regime: 'choppy', bars_count: 720, passed: false,
                 total_return_pct: -2.0, max_drawdown_pct: -18.0, win_rate: 30.0,

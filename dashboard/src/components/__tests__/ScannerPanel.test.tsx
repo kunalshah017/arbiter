@@ -12,7 +12,7 @@ describe('ScannerPanel', () => {
     })
 
     it('displays results table after scan', async () => {
-        vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+        vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
             ok: true, json: async () => [
                 { symbol: 'BNB', price: 600.5, volume_24h: 1500000000, change_24h_pct: 3.2, momentum_score: 28.8 },
                 { symbol: 'ETH', price: 3500.0, volume_24h: 2000000000, change_24h_pct: -1.5, momentum_score: 15.2 },
