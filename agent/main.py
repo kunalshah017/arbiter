@@ -117,7 +117,6 @@ class Arbiter:
             return
 
         # 4. For each candidate: fetch OHLCV → backtest → gate → execute
-        strategy_config = get_strategy_config(regime)
         executed = 0
 
         for token in candidates:
@@ -126,39 +125,74 @@ class Arbiter:
             if self.portfolio.has_position(token.symbol):
                 continue
 
-            # Check exposure
-            position_size = calculate_position_size(
-                self.portfolio.total_value,
-                strategy_config.get("take_profit_atr_multiple", 4.0),
-                -strategy_config.get("stop_loss_atr_multiple", 2.0) * 2,
-            )
-            can_add, reason = self.guardrails.check_exposure(
-                self.portfolio.exposure_pct,
-                (position_size / self.portfolio.total_value *
-                 100) if self.portfolio.total_value > 0 else 0,
-            )
-            if not can_add:
-                logger.info("arbiter.exposure_limit", reason=reason)
-                break
-
             # Fetch OHLCV from Binance
             bars = await self._get_ohlcv(token.symbol)
             if not bars or len(bars) < 50:
                 continue
 
-            # Validate with backtest
             bars_json = json.dumps(bars)
-            config_json = json.dumps(strategy_config)
-            gate_result = validate_strategy(bars_json, config_json)
 
-            if gate_result.passed:
-                success = await self._execute_entry(token.symbol, position_size, strategy_config)
-                if success:
-                    executed += 1
-                    self._trades_today += 1
+            from agent.optimizer import StrategyOptimizer
+
+            if settings.optimizer_enabled:
+                optimizer = StrategyOptimizer()
+                opt_result = await optimizer.optimize(regime, bars_json)
+                if opt_result.status == "accepted":
+                    strategy_config = opt_result.strategy_config
+                    
+                    # Check exposure
+                    position_size = calculate_position_size(
+                        self.portfolio.total_value,
+                        strategy_config.get("take_profit_atr_multiple", 4.0),
+                        -strategy_config.get("stop_loss_atr_multiple", 2.0) * 2,
+                    )
+                    can_add, reason = self.guardrails.check_exposure(
+                        self.portfolio.exposure_pct,
+                        (position_size / self.portfolio.total_value *
+                         100) if self.portfolio.total_value > 0 else 0,
+                    )
+                    if not can_add:
+                        logger.info("arbiter.exposure_limit", reason=reason)
+                        break
+
+                    # Execute trade with the optimized strategy
+                    success = await self._execute_entry(token.symbol, position_size, strategy_config)
+                    if success:
+                        executed += 1
+                        self._trades_today += 1
+                else:
+                    logger.debug("optimizer.no_acceptable_strategy",
+                                  symbol=token.symbol, status=opt_result.status)
             else:
-                logger.debug("arbiter.gate_rejected", symbol=token.symbol,
-                             reasons=gate_result.rejection_reasons)
+                # Fallback: use fixed strategy templates
+                strategy_config = get_strategy_config(regime)
+                
+                # Check exposure
+                position_size = calculate_position_size(
+                    self.portfolio.total_value,
+                    strategy_config.get("take_profit_atr_multiple", 4.0),
+                    -strategy_config.get("stop_loss_atr_multiple", 2.0) * 2,
+                )
+                can_add, reason = self.guardrails.check_exposure(
+                    self.portfolio.exposure_pct,
+                    (position_size / self.portfolio.total_value *
+                     100) if self.portfolio.total_value > 0 else 0,
+                )
+                if not can_add:
+                    logger.info("arbiter.exposure_limit", reason=reason)
+                    break
+
+                config_json = json.dumps(strategy_config)
+                gate_result = validate_strategy(bars_json, config_json)
+                
+                if gate_result.passed:
+                    success = await self._execute_entry(token.symbol, position_size, strategy_config)
+                    if success:
+                        executed += 1
+                        self._trades_today += 1
+                else:
+                    logger.debug("arbiter.gate_rejected", symbol=token.symbol,
+                                 reasons=gate_result.rejection_reasons)
 
     async def _fetch_market_context(self) -> dict:
         """Fetch global market data for regime classification."""
