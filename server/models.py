@@ -66,3 +66,24 @@ class AgentLog(Base):
     event: Mapped[str] = mapped_column(String(50))
     details: Mapped[str] = mapped_column(Text, nullable=True)
     regime: Mapped[str] = mapped_column(String(30), nullable=True)
+
+
+class OptimizationRun(Base):
+    """Record of a strategy optimization attempt."""
+    __tablename__ = "optimization_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    regime: Mapped[str] = mapped_column(String(30))
+    status: Mapped[str] = mapped_column(String(20))  # accepted, best_effort, failed
+    iterations_used: Mapped[int] = mapped_column(Integer)
+    max_iterations: Mapped[int] = mapped_column(Integer)
+    best_strategy_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    best_expectancy_pct: Mapped[float] = mapped_column(Float, nullable=True)
+    best_return_pct: Mapped[float] = mapped_column(Float, nullable=True)
+    best_win_rate: Mapped[float] = mapped_column(Float, nullable=True)
+    best_num_trades: Mapped[int] = mapped_column(Integer, nullable=True)
+    strategy_config_json: Mapped[str] = mapped_column(Text, nullable=True)
+    last_feedback: Mapped[str] = mapped_column(Text, nullable=True)
+    all_attempts_json: Mapped[str] = mapped_column(Text, nullable=True)

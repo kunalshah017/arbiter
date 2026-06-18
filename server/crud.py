@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from server.models import Trade, Position, PortfolioSnapshot, AgentLog
+from server.models import Trade, Position, PortfolioSnapshot, AgentLog, OptimizationRun
 
 
 async def create_trade(db: AsyncSession, **kwargs) -> Trade:
@@ -70,3 +70,32 @@ async def log_event(db: AsyncSession, event: str, details: str = "", regime: str
 async def get_agent_logs(db: AsyncSession, limit: int = 100) -> list[AgentLog]:
     result = await db.execute(select(AgentLog).order_by(desc(AgentLog.timestamp)).limit(limit))
     return list(result.scalars().all())
+
+
+async def save_optimization_run(db: AsyncSession, **kwargs) -> OptimizationRun:
+    run = OptimizationRun(**kwargs)
+    db.add(run)
+    await db.commit()
+    await db.refresh(run)
+    return run
+
+
+async def get_optimization_history(db: AsyncSession, symbol: str | None = None, limit: int = 20) -> list[OptimizationRun]:
+    query = select(OptimizationRun).order_by(desc(OptimizationRun.timestamp)).limit(limit)
+    if symbol:
+        query = query.where(OptimizationRun.symbol == symbol)
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+async def get_last_feedback_for_regime(db: AsyncSession, regime: str) -> str | None:
+    """Get the last optimization feedback for a regime to seed the next run."""
+    result = await db.execute(
+        select(OptimizationRun)
+        .where(OptimizationRun.regime == regime)
+        .where(OptimizationRun.last_feedback.isnot(None))
+        .order_by(desc(OptimizationRun.timestamp))
+        .limit(1)
+    )
+    run = result.scalar_one_or_none()
+    return run.last_feedback if run else None

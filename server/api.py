@@ -213,3 +213,39 @@ async def get_agent_status():
         "daily_pnl_pct": 0.42,
         "uptime_seconds": 7200,
     }
+
+
+@app.post("/api/optimize")
+async def run_optimization(req: BacktestRequest):
+    """Run the strategy optimization loop for a symbol."""
+    from agent.optimizer import StrategyOptimizer
+    try:
+        regime = Regime(req.regime)
+    except ValueError:
+        raise HTTPException(400, f"Invalid regime: {req.regime}")
+
+    bars = await binance.fetch_ohlcv(req.symbol, interval=req.interval, limit=req.limit)
+    if not bars or len(bars) < 50:
+        raise HTTPException(400, f"Insufficient data for {req.symbol}")
+    engine_bars = bars_to_engine_json(bars)
+
+    optimizer = StrategyOptimizer()
+    result = await optimizer.optimize(regime, json.dumps(engine_bars))
+
+    return {
+        "status": result.status,
+        "iteration": result.iteration,
+        "total_iterations": result.total_iterations,
+        "strategy_name": result.strategy_config.get("name") if result.strategy_config else None,
+        "passed": result.gate_result.passed if result.gate_result else False,
+        "total_return_pct": result.gate_result.total_return_pct if result.gate_result else 0,
+        "max_drawdown_pct": result.gate_result.max_drawdown_pct if result.gate_result else 0,
+        "win_rate": result.gate_result.win_rate if result.gate_result else 0,
+        "num_trades": result.gate_result.num_trades if result.gate_result else 0,
+        "profit_factor": result.gate_result.profit_factor if result.gate_result else 0,
+        "expectancy_pct": result.gate_result.expectancy_pct if result.gate_result else 0,
+        "rejection_reasons": result.gate_result.rejection_reasons if result.gate_result else [],
+        "all_attempts": result.all_attempts,
+        "last_feedback": result.last_feedback,
+        "strategy_config": result.strategy_config,
+    }
