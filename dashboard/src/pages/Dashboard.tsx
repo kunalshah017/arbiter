@@ -297,7 +297,7 @@ export function Dashboard() {
                                 )}
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="opacity-60">Variants Tested</span>
-                                    <span className="font-mono font-bold">{result.all_attempts.length}</span>
+                                    <span className="font-mono font-bold">{result.all_attempts?.length ?? 1}</span>
                                 </div>
                                 {result.last_feedback && (
                                     <div className="mt-2 p-2 bg-gray-50 border-2 border-border/30 rounded text-xs leading-relaxed prose prose-xs max-w-none">
@@ -305,10 +305,10 @@ export function Dashboard() {
                                         <Markdown>{result.last_feedback}</Markdown>
                                     </div>
                                 )}
-                                {result.rejection_reasons.length > 0 && (
+                                {(result.rejection_reasons?.length ?? 0) > 0 && (
                                     <div className="mt-2 space-y-1">
                                         <span className="font-bold uppercase text-[10px] opacity-50">Rejection Reasons</span>
-                                        {result.rejection_reasons.map((r, i) => (
+                                        {result.rejection_reasons?.map((r, i) => (
                                             <div key={i} className="text-xs text-danger flex items-start gap-1">
                                                 <XCircle size={12} className="shrink-0 mt-0.5" />{r}
                                             </div>
