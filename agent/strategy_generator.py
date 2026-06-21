@@ -24,7 +24,8 @@ def _get_llm_client_and_model(nvidia_model: str, gemini_model: str) -> tuple[Ope
                         api_key=settings.google_api_key)
         return client, gemini_model
     else:
-        logger.warning("llm.no_api_key", msg="No NVIDIA_API_KEY or GOOGLE_API_KEY set. Optimizer will use base templates only.")
+        logger.warning(
+            "llm.no_api_key", msg="No NVIDIA_API_KEY or GOOGLE_API_KEY set. Optimizer will use base templates only.")
         return None, ""
 
 
@@ -53,7 +54,8 @@ class StrategyGenerator:
         """Generate strategy variants from a base template."""
         # If no LLM client available, just return the base template as-is
         if self.client is None:
-            logger.info("strategy_generator.no_llm", msg="Using base template only (no API key)")
+            logger.info("strategy_generator.no_llm",
+                        msg="Using base template only (no API key)")
             return [self._normalize_config(base_template)]
 
         user_msg = f"Base strategy:\n```json\n{json.dumps(base_template, indent=2)}\n```\n\nGenerate {num_variants} variants."
