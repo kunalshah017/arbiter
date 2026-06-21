@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Markdown from 'react-markdown'
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels"
 import { OHLCVChart } from '../components/OHLCVChart'
 import { BacktestChart } from '../components/BacktestChart'
 import { EquityCurve } from '../components/EquityCurve'
@@ -192,7 +193,7 @@ export function Dashboard() {
 
                 <div className="flex items-center gap-4">
                     {/* Toolbar Form */}
-                    <div className="flex items-center gap-2 bg-gray-50 border-[2.5px] border-border rounded p-1">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 bg-gray-50 border-[2.5px] border-border rounded p-1">
                         <select
                             className="bg-transparent border-r-[2px] border-border/30 px-2 py-1 text-sm font-bold outline-none cursor-pointer"
                             value={symbol}
@@ -245,231 +246,241 @@ export function Dashboard() {
 
             {/* ── WORKSPACE ──────────────────────────────────────────────── */}
             <div className="flex-1 flex overflow-hidden">
+                <PanelGroup direction="horizontal">
+                    {/* ── LEFT PANE: STRATEGY & OPTIMIZER ── */}
+                    <Panel defaultSize={20} minSize={15} maxSize={35} className="bg-white border-r-[2.5px] border-border flex flex-col overflow-y-auto hidden md:flex">
+                        <div className="p-4 border-b-[2.5px] border-border bg-gray-50 flex items-center gap-2 shrink-0">
+                            <Settings2 size={16} />
+                            <h2 className="font-bold text-sm uppercase tracking-wider">Strategy Config</h2>
+                        </div>
+                        <div className="p-4 flex-1">
+                            {error && (
+                                <div className="mb-4 neo-card p-3 border-red-500 bg-red-50 text-red-700 font-bold text-xs">
+                                    {error}
+                                </div>
+                            )}
 
-                {/* ── LEFT PANE: STRATEGY & OPTIMIZER ── */}
-                <aside className="w-80 shrink-0 bg-white border-r-[2.5px] border-border flex flex-col overflow-y-auto hidden md:flex">
-                    <div className="p-4 border-b-[2.5px] border-border bg-gray-50 flex items-center gap-2">
-                        <Settings2 size={16} />
-                        <h2 className="font-bold text-sm uppercase tracking-wider">Strategy Config</h2>
-                    </div>
-                    <div className="p-4 flex-1">
-                        {error && (
-                            <div className="mb-4 neo-card p-3 border-red-500 bg-red-50 text-red-700 font-bold text-xs">
-                                {error}
-                            </div>
-                        )}
-
-                        {!result ? (
-                            <div className="h-full flex flex-col items-center justify-center opacity-40 text-center gap-3">
-                                <Search size={32} />
-                                <p className="text-xs font-bold uppercase">Ready to backtest</p>
-                                <p className="text-[10px]">Select constraints above and hit Run to evaluate strategy edge.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-6">
-                                {/* Optimizer Status */}
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <StatusBadge status={result.status} />
-                                        <span className="font-mono text-xs font-bold">Iter {result.iteration}/{result.total_iterations}</span>
+                            {!result ? (
+                                <div className="h-full flex flex-col items-center justify-center opacity-40 text-center gap-3">
+                                    <Search size={32} />
+                                    <p className="text-xs font-bold uppercase">Ready to backtest</p>
+                                    <p className="text-[10px]">Select constraints above and hit Run to evaluate strategy edge.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {/* Optimizer Status */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <StatusBadge status={result.status} />
+                                            <span className="font-mono text-xs font-bold">Iter {result.iteration}/{result.total_iterations}</span>
+                                        </div>
+                                        {result.strategy_name && (
+                                            <div className="bg-primary/20 p-2 border-2 border-primary rounded text-xs font-bold">
+                                                {result.strategy_name}
+                                            </div>
+                                        )}
+                                        {result.passed ? (
+                                            <div className="text-xs text-green-700 font-bold flex items-center gap-1.5 bg-green-50 p-2 border-2 border-green-200 rounded">
+                                                <Shield size={14} /> Gate Passed: Viable Strategy
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-red-700 font-bold flex items-center gap-1.5 bg-red-50 p-2 border-2 border-red-200 rounded">
+                                                <AlertTriangle size={14} /> Gate Failed: Not Viable
+                                            </div>
+                                        )}
                                     </div>
-                                    {result.strategy_name && (
-                                        <div className="bg-primary/20 p-2 border-2 border-primary rounded text-xs font-bold">
-                                            {result.strategy_name}
+
+                                    {/* Rejection Reasons */}
+                                    {((result.rejection_reasons?.length ?? 0) > 0) && (
+                                        <div>
+                                            <h3 className="text-[10px] font-bold uppercase opacity-50 mb-2">Gate Rejections</h3>
+                                            <div className="space-y-1">
+                                                {result.rejection_reasons?.map((r, i) => (
+                                                    <div key={i} className="text-xs text-red-600 flex items-start gap-1.5 font-mono">
+                                                        <XCircle size={12} className="shrink-0 mt-0.5" />{r}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
-                                    {result.passed ? (
-                                        <div className="text-xs text-green-700 font-bold flex items-center gap-1.5 bg-green-50 p-2 border-2 border-green-200 rounded">
-                                            <Shield size={14} /> Gate Passed: Viable Strategy
+
+                                    {/* Advisor Feedback */}
+                                    {result.last_feedback && (
+                                        <div>
+                                            <h3 className="text-[10px] font-bold uppercase opacity-50 mb-2 flex items-center gap-1">
+                                                <Sparkles size={12} /> Advisor Feedback
+                                            </h3>
+                                            <div className="p-3 bg-gray-50 border-2 border-border/20 rounded text-xs leading-relaxed prose prose-xs max-w-none font-sans">
+                                                <Markdown>{result.last_feedback}</Markdown>
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <div className="text-xs text-red-700 font-bold flex items-center gap-1.5 bg-red-50 p-2 border-2 border-red-200 rounded">
-                                            <AlertTriangle size={14} /> Gate Failed: Not Viable
+                                    )}
+
+                                    {/* Technical Params */}
+                                    {result.strategy_config && (
+                                        <div>
+                                            <h3 className="text-[10px] font-bold uppercase opacity-50 mb-2">Deployed Parameters</h3>
+                                            <div className="space-y-1 text-xs font-mono bg-surface p-2 border-2 border-border/20 rounded max-h-[300px] overflow-y-auto">
+                                                {Object.entries(result.strategy_config).map(([key, val]) => (
+                                                    <div key={key} className="flex justify-between gap-2 py-1 border-b border-border/10 last:border-b-0">
+                                                        <span className="opacity-60 shrink-0">{key}</span>
+                                                        <span className="font-bold text-right truncate" title={typeof val === 'object' ? JSON.stringify(val) : String(val)}>
+                                                            {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
-
-                                {/* Rejection Reasons */}
-                                {((result.rejection_reasons?.length ?? 0) > 0) && (
-                                    <div>
-                                        <h3 className="text-[10px] font-bold uppercase opacity-50 mb-2">Gate Rejections</h3>
-                                        <div className="space-y-1">
-                                            {result.rejection_reasons?.map((r, i) => (
-                                                <div key={i} className="text-xs text-red-600 flex items-start gap-1.5 font-mono">
-                                                    <XCircle size={12} className="shrink-0 mt-0.5" />{r}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Advisor Feedback */}
-                                {result.last_feedback && (
-                                    <div>
-                                        <h3 className="text-[10px] font-bold uppercase opacity-50 mb-2 flex items-center gap-1">
-                                            <Sparkles size={12} /> Advisor Feedback
-                                        </h3>
-                                        <div className="p-3 bg-gray-50 border-2 border-border/20 rounded text-xs leading-relaxed prose prose-xs max-w-none font-sans">
-                                            <Markdown>{result.last_feedback}</Markdown>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Technical Params */}
-                                {result.strategy_config && (
-                                    <div>
-                                        <h3 className="text-[10px] font-bold uppercase opacity-50 mb-2">Deployed Parameters</h3>
-                                        <div className="space-y-1 text-xs font-mono bg-surface p-2 border-2 border-border/20 rounded max-h-[300px] overflow-y-auto">
-                                            {Object.entries(result.strategy_config).map(([key, val]) => (
-                                                <div key={key} className="flex justify-between gap-2 py-1 border-b border-border/10 last:border-b-0">
-                                                    <span className="opacity-60 shrink-0">{key}</span>
-                                                    <span className="font-bold text-right truncate">
-                                                        {typeof val === 'object' ? JSON.stringify(val) : String(val)}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </aside>
-
-                {/* ── CENTER PANE: CHARTS ── */}
-                <main className="flex-1 flex flex-col min-w-0 bg-surface">
-                    {/* Top Chart Area */}
-                    <div className="flex-1 p-2 min-h-0 flex flex-col">
-                        <div className="neo-card flex-1 flex flex-col overflow-hidden relative">
-                            {/* Overlay info */}
-                            <div className="absolute top-4 left-4 z-10 pointer-events-none">
-                                <span className="font-bold text-lg bg-white/80 px-2 py-1 rounded border-2 border-border backdrop-blur-sm">
-                                    {symbol} / USDT <span className="text-secondary tracking-widest text-xs uppercase">{interval}</span>
-                                </span>
-                            </div>
-
-                            {result?.bars && result?.trades ? (
-                                <BacktestChart bars={result.bars} trades={result.trades} equityCurve={result.equity_curve as number[] || []} />
-                            ) : (
-                                <OHLCVChart symbol={symbol} />
                             )}
                         </div>
-                    </div>
+                    </Panel>
 
-                    {/* Bottom Equity Area */}
-                    {result && result.equity_curve && (
-                        <div className="h-48 p-2 shrink-0 border-t-[2.5px] border-border bg-white flex flex-col">
-                            <h3 className="text-[10px] font-bold uppercase opacity-60 ml-2 mb-1">Portfolio Equity</h3>
-                            <div className="flex-1 neo-card overflow-hidden">
-                                <EquityCurve data={result.equity_curve} />
-                            </div>
+                    <PanelResizeHandle className="w-[3px] bg-border hover:bg-primary cursor-col-resize transition-colors hidden md:block" />
+
+                    {/* ── CENTER PANE: CHARTS ── */}
+                    <Panel defaultSize={55} minSize={40} className="flex flex-col min-w-0 bg-surface">
+                        <PanelGroup direction="vertical">
+                            {/* Top Chart Area */}
+                            <Panel defaultSize={70} minSize={30} className="p-2 flex flex-col min-h-0">
+                                <div className="neo-card flex-1 flex flex-col overflow-hidden relative min-h-0">
+                                    {/* Overlay info */}
+                                    <div className="absolute top-4 left-4 z-10 pointer-events-none">
+                                        <span className="font-bold text-lg bg-white/80 px-2 py-1 rounded border-2 border-border backdrop-blur-sm">
+                                            {symbol} / USDT <span className="text-secondary tracking-widest text-xs uppercase">{interval}</span>
+                                        </span>
+                                    </div>
+
+                                    {result?.bars && result?.trades ? (
+                                        <BacktestChart bars={result.bars} trades={result.trades} equityCurve={result.equity_curve as number[] || []} />
+                                    ) : (
+                                        <OHLCVChart symbol={symbol} />
+                                    )}
+                                </div>
+                            </Panel>
+
+                            {/* Bottom Equity Area */}
+                            {result && result.equity_curve && (
+                                <>
+                                    <PanelResizeHandle className="h-[3px] bg-border hover:bg-primary cursor-row-resize transition-colors" />
+                                    <Panel defaultSize={30} minSize={15} className="p-2 bg-white flex flex-col border-t-[2.5px] border-border overflow-hidden">
+                                        <h3 className="text-[10px] font-bold uppercase opacity-60 ml-2 mb-1 shrink-0">Portfolio Equity</h3>
+                                        <div className="flex-1 neo-card overflow-hidden min-h-0 relative">
+                                            <EquityCurve data={result.equity_curve} />
+                                        </div>
+                                    </Panel>
+                                </>
+                            )}
+                        </PanelGroup>
+                    </Panel>
+
+                    <PanelResizeHandle className="w-[3px] bg-border hover:bg-primary cursor-col-resize transition-colors hidden lg:block" />
+
+                    {/* ── RIGHT PANE: METRICS & TRADES ── */}
+                    <Panel defaultSize={25} minSize={20} maxSize={50} className="bg-white border-l-[2.5px] border-border flex flex-col overflow-hidden hidden lg:flex">
+                        <div className="p-4 border-b-[2.5px] border-border bg-gray-50 flex items-center gap-2 shrink-0">
+                            <History size={16} />
+                            <h2 className="font-bold text-sm uppercase tracking-wider">Analytics</h2>
                         </div>
-                    )}
-                </main>
 
-                {/* ── RIGHT PANE: METRICS & TRADES ── */}
-                <aside className="w-[380px] shrink-0 bg-white border-l-[2.5px] border-border flex flex-col overflow-hidden hidden lg:flex">
-                    <div className="p-4 border-b-[2.5px] border-border bg-gray-50 flex items-center gap-2">
-                        <History size={16} />
-                        <h2 className="font-bold text-sm uppercase tracking-wider">Analytics</h2>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto bg-surface p-3 space-y-3">
-                        {!result ? (
-                            <div className="h-full flex flex-col items-center justify-center opacity-40 text-center gap-3">
-                                <BarChart3 size={32} />
-                                <p className="text-xs font-bold uppercase">No data</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Primary Metrics Grid */}
-                                <div className="grid grid-cols-2 gap-2">
-                                    <MetricCard
-                                        label="Total Return"
-                                        value={`${result.total_return_pct >= 0 ? '+' : ''}${result.total_return_pct.toFixed(2)}%`}
-                                        icon={TrendingUp}
-                                        color={result.total_return_pct >= 0 ? 'text-success' : 'text-danger'}
-                                    />
-                                    <MetricCard
-                                        label="Expectancy"
-                                        value={`${result.expectancy_pct >= 0 ? '+' : ''}${result.expectancy_pct.toFixed(2)}%`}
-                                        icon={Percent}
-                                        color={result.expectancy_pct >= 0 ? 'text-success' : 'text-danger'}
-                                    />
-                                    <MetricCard
-                                        label="Max Drawdown"
-                                        value={`${result.max_drawdown_pct.toFixed(2)}%`}
-                                        icon={TrendingDown}
-                                        color="text-danger"
-                                    />
-                                    <MetricCard
-                                        label="Win Rate"
-                                        value={<div className="flex items-baseline gap-1">
-                                            <span>{(result.win_rate).toFixed(1)}%</span>
-                                            <span className="text-[10px] opacity-40">({winCount}/{trades.length})</span>
-                                        </div>}
-                                        icon={Target}
-                                        color={result.win_rate >= 50 ? 'text-success' : 'text-danger'}
-                                    />
-                                    <MetricCard
-                                        label="Profit Factor"
-                                        value={result.profit_factor.toFixed(2)}
-                                        icon={Award}
-                                        color={result.profit_factor >= 1.5 ? 'text-success' : result.profit_factor >= 1 ? 'text-yellow-600' : 'text-danger'}
-                                    />
-                                    <MetricCard
-                                        label="Sharpe Ratio"
-                                        value={derived.sharpe.toFixed(2)}
-                                        icon={Activity}
-                                        color={derived.sharpe >= 1 ? 'text-success' : derived.sharpe >= 0 ? 'text-yellow-600' : 'text-danger'}
-                                    />
+                        <div className="flex-1 overflow-y-auto bg-surface p-3 space-y-3">
+                            {!result ? (
+                                <div className="h-full flex flex-col items-center justify-center opacity-40 text-center gap-3">
+                                    <BarChart3 size={32} />
+                                    <p className="text-xs font-bold uppercase">No data</p>
                                 </div>
+                            ) : (
+                                <>
+                                    {/* Primary Metrics Grid */}
+                                    <div className="grid grid-cols-2 gap-2 shrink-0">
+                                        <MetricCard
+                                            label="Total Return"
+                                            value={`${result.total_return_pct >= 0 ? '+' : ''}${result.total_return_pct.toFixed(2)}%`}
+                                            icon={TrendingUp}
+                                            color={result.total_return_pct >= 0 ? 'text-success' : 'text-danger'}
+                                        />
+                                        <MetricCard
+                                            label="Expectancy"
+                                            value={`${result.expectancy_pct >= 0 ? '+' : ''}${result.expectancy_pct.toFixed(2)}%`}
+                                            icon={Percent}
+                                            color={result.expectancy_pct >= 0 ? 'text-success' : 'text-danger'}
+                                        />
+                                        <MetricCard
+                                            label="Max Drawdown"
+                                            value={`${result.max_drawdown_pct.toFixed(2)}%`}
+                                            icon={TrendingDown}
+                                            color="text-danger"
+                                        />
+                                        <MetricCard
+                                            label="Win Rate"
+                                            value={<div className="flex items-baseline gap-1">
+                                                <span>{(result.win_rate).toFixed(1)}%</span>
+                                                <span className="text-[10px] opacity-40">({winCount}/{trades.length})</span>
+                                            </div>}
+                                            icon={Target}
+                                            color={result.win_rate >= 50 ? 'text-success' : 'text-danger'}
+                                        />
+                                        <MetricCard
+                                            label="Profit Factor"
+                                            value={result.profit_factor.toFixed(2)}
+                                            icon={Award}
+                                            color={result.profit_factor >= 1.5 ? 'text-success' : result.profit_factor >= 1 ? 'text-yellow-600' : 'text-danger'}
+                                        />
+                                        <MetricCard
+                                            label="Sharpe Ratio"
+                                            value={derived.sharpe.toFixed(2)}
+                                            icon={Activity}
+                                            color={derived.sharpe >= 1 ? 'text-success' : derived.sharpe >= 0 ? 'text-yellow-600' : 'text-danger'}
+                                        />
+                                    </div>
 
-                                {/* Secondary Metrics */}
-                                <div className="neo-card p-3 font-mono text-[11px] space-y-2">
-                                    <div className="flex justify-between border-b border-border/10 pb-1">
-                                        <span className="opacity-60">Avg Win</span>
-                                        <span className="text-success font-bold">+{derived.avgWin.toFixed(2)}%</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-border/10 pb-1">
-                                        <span className="opacity-60">Avg Loss</span>
-                                        <span className="text-danger font-bold">{derived.avgLoss.toFixed(2)}%</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-border/10 pb-1">
-                                        <span className="opacity-60">Best Trade</span>
-                                        <span className="text-success font-bold">+{derived.bestTrade.toFixed(2)}%</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="opacity-60">Worst Trade</span>
-                                        <span className="text-danger font-bold">{derived.worstTrade.toFixed(2)}%</span>
-                                    </div>
-                                </div>
-
-                                {/* Trade Bar */}
-                                {trades.length > 0 && (
-                                    <div className="neo-card p-3">
-                                        <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 opacity-60">W/L Distribution</h3>
-                                        <div className="flex items-center w-full h-4 rounded overflow-hidden border-2 border-border mb-2">
-                                            <div className="h-full bg-success" style={{ width: `${(winCount / trades.length) * 100}%` }}></div>
-                                            <div className="h-full bg-danger" style={{ width: `${(lossCount / trades.length) * 100}%` }}></div>
+                                    {/* Secondary Metrics */}
+                                    <div className="neo-card p-3 font-mono text-[11px] space-y-2 shrink-0">
+                                        <div className="flex justify-between border-b border-border/10 pb-1">
+                                            <span className="opacity-60">Avg Win</span>
+                                            <span className="text-success font-bold">+{derived.avgWin.toFixed(2)}%</span>
                                         </div>
-                                        <div className="flex justify-between text-[10px] font-bold">
-                                            <span className="text-success">{winCount} WINS</span>
-                                            <span className="text-danger">{lossCount} LOSSES</span>
+                                        <div className="flex justify-between border-b border-border/10 pb-1">
+                                            <span className="opacity-60">Avg Loss</span>
+                                            <span className="text-danger font-bold">{derived.avgLoss.toFixed(2)}%</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-border/10 pb-1">
+                                            <span className="opacity-60">Best Trade</span>
+                                            <span className="text-success font-bold">+{derived.bestTrade.toFixed(2)}%</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="opacity-60">Worst Trade</span>
+                                            <span className="text-danger font-bold">{derived.worstTrade.toFixed(2)}%</span>
                                         </div>
                                     </div>
-                                )}
 
-                                {/* Trade List */}
-                                {trades.length > 0 && (
-                                    <div className="p-0 border-t-0 border-x-0 border-b-0">
-                                        <TradeTable trades={trades} />
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </aside>
+                                    {/* Trade Bar */}
+                                    {trades.length > 0 && (
+                                        <div className="neo-card p-3 shrink-0">
+                                            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 opacity-60">W/L Distribution</h3>
+                                            <div className="flex items-center w-full h-4 rounded overflow-hidden border-2 border-border mb-2">
+                                                <div className="h-full bg-success" style={{ width: `${(winCount / trades.length) * 100}%` }}></div>
+                                                <div className="h-full bg-danger" style={{ width: `${(lossCount / trades.length) * 100}%` }}></div>
+                                            </div>
+                                            <div className="flex justify-between text-[10px] font-bold">
+                                                <span className="text-success">{winCount} WINS</span>
+                                                <span className="text-danger">{lossCount} LOSSES</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Trade List */}
+                                    {trades.length > 0 && (
+                                        <div className="p-0 border-none">
+                                            <TradeTable trades={trades} />
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </Panel>
+                </PanelGroup>
             </div>
         </div>
     )
