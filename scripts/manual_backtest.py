@@ -21,7 +21,7 @@ async def main():
     print("-" * 60)
 
     binance = BinanceClient()
-    bars = await binance.fetch_ohlcv(symbol, interval="1h", limit=720)
+    bars = await binance.fetch_ohlcv(symbol, interval="1m", limit=1000)
     print(f"Fetched {len(bars)} bars from Binance")
 
     if len(bars) < 50:
