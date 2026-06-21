@@ -259,15 +259,15 @@ export function Dashboard() {
                                             </div>
                                         </div>
                                     )}
-                                </div>
 
-                                {/* Reset Button */}
-                            <button
-                                onClick={resetView}
-                                className="neo-btn bg-white w-full mt-4 flex items-center justify-center gap-2 text-xs font-bold py-3"
-                            >
-                                <RotateCcw size={14} /> Reset & Try Another Strategy
-                            </button>
+                                    {/* Reset Button */}
+                                    <button
+                                        onClick={resetView}
+                                        className="neo-btn bg-white w-full flex items-center justify-center gap-2 text-xs font-bold py-3"
+                                    >
+                                        <RotateCcw size={14} /> Reset and Try Another Strategy
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </Panel>

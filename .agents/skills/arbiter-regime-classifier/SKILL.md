@@ -32,17 +32,18 @@ Classifies current crypto market regime using CMC Agent Hub data to guide strate
 
 ## CMC Data Inputs
 
-| CMC MCP Tool | Data Used | Regime Signal |
-|-------------|-----------|---------------|
-| `get_global_metrics_latest` | Fear & Greed Index | Extreme fear → mean_reverting; Extreme greed → trending_up |
-| `get_global_metrics_latest` | BTC Dominance | Rising dominance → risk-off / trending_down |
-| `get_global_crypto_derivatives_metrics` | Funding rates | High positive → overheated / high_volatility |
-| `get_global_crypto_derivatives_metrics` | Open interest | Expanding OI + price up → trending_up |
-| `get_crypto_technical_analysis` | RSI, EMA crossovers | Confirms trend direction and strength |
+| CMC MCP Tool                            | Data Used           | Regime Signal                                              |
+| --------------------------------------- | ------------------- | ---------------------------------------------------------- |
+| `get_global_metrics_latest`             | Fear & Greed Index  | Extreme fear → mean_reverting; Extreme greed → trending_up |
+| `get_global_metrics_latest`             | BTC Dominance       | Rising dominance → risk-off / trending_down                |
+| `get_global_crypto_derivatives_metrics` | Funding rates       | High positive → overheated / high_volatility               |
+| `get_global_crypto_derivatives_metrics` | Open interest       | Expanding OI + price up → trending_up                      |
+| `get_crypto_technical_analysis`         | RSI, EMA crossovers | Confirms trend direction and strength                      |
 
 ## Regime Definitions
 
 ### `trending_up`
+
 - Fear & Greed > 60
 - Price above key EMAs (9 > 21 > 50)
 - RSI between 55-75
@@ -50,6 +51,7 @@ Classifies current crypto market regime using CMC Agent Hub data to guide strate
 - **Strategy**: Momentum breakout, trend-following
 
 ### `trending_down`
+
 - Fear & Greed < 35
 - Price below key EMAs
 - RSI below 45
@@ -57,6 +59,7 @@ Classifies current crypto market regime using CMC Agent Hub data to guide strate
 - **Strategy**: Cautious entries, tight stops
 
 ### `mean_reverting`
+
 - Fear & Greed between 35-55
 - Price oscillating around middle Bollinger Band
 - RSI cycling between 30-70
@@ -64,12 +67,14 @@ Classifies current crypto market regime using CMC Agent Hub data to guide strate
 - **Strategy**: Buy oversold, sell overbought
 
 ### `high_volatility`
+
 - ATR expanding (current ATR > 50-period ATR)
 - Large daily ranges (>3% intraday moves)
 - Liquidation cascades visible in OI data
 - **Strategy**: Volatility breakout, wider stops
 
 ### `choppy`
+
 - No clear directional bias
 - Tight Bollinger Bands (squeeze)
 - Low volume relative to average

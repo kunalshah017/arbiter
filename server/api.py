@@ -8,14 +8,18 @@ from arbiter._engine import crypto_backtest
 import json
 import sys
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, WebSocket
+from fastapi import FastAPI, HTTPException, WebSocket, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from server.ws import streamer
 from server.database import init_db
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+STATIC_DIR = Path(__file__).parent.parent / "dashboard" / "dist"
 
 
 @asynccontextmanager
@@ -27,7 +31,7 @@ async def lifespan(app):
 app = FastAPI(title="Arbiter Dashboard API", lifespan=lifespan)
 
 app.add_middleware(CORSMiddleware, allow_origins=[
-                   "http://localhost:5173"], allow_methods=["*"], allow_headers=["*"])
+                   "http://localhost:5173", "*"], allow_methods=["*"], allow_headers=["*"])
 
 binance = BinanceClient()
 
@@ -453,3 +457,21 @@ async def run_optimization(req: BacktestRequest):
         "last_feedback": result.last_feedback,
         "strategy_config": result.strategy_config,
     }
+
+
+# ── STATIC FILES + SPA CATCH-ALL ─────────────────────────────────────────────
+# Must be AFTER all API routes so /api/* and /ws/* are handled first.
+
+if STATIC_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR /
+              "assets"), name="static-assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(request: Request, full_path: str):
+        """Serve static files or fall back to index.html for React Router."""
+        # Try to serve the exact file first (e.g. favicon.ico, manifest.json)
+        file_path = STATIC_DIR / full_path
+        if full_path and file_path.exists() and file_path.is_file():
+            return FileResponse(file_path)
+        # Fall back to index.html for all other routes (React Router handles them)
+        return FileResponse(STATIC_DIR / "index.html")

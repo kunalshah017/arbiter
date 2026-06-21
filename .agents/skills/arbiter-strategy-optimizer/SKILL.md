@@ -47,6 +47,7 @@ Advisor (LLM) ← Risk Gate ← Rust Backtest Engine (<50ms)
 ## Data Sources
 
 ### CoinMarketCap Agent Hub (MCP)
+
 - `get_global_metrics_latest` — Fear & Greed Index, BTC dominance, total market cap
 - `get_global_crypto_derivatives_metrics` — Funding rates, open interest, leverage
 - `get_crypto_technical_analysis` — Pre-computed RSI, EMA, MACD signals
@@ -54,6 +55,7 @@ Advisor (LLM) ← Risk Gate ← Rust Backtest Engine (<50ms)
 - `trending_crypto_narratives` — Market narrative context
 
 ### Binance Public API
+
 - OHLCV candle data (1m to 1d intervals, up to 1000 bars per request)
 
 ## Strategy Output Format
@@ -63,18 +65,18 @@ The skill produces structured JSON strategy configurations:
 ```json
 {
   "indicators": [
-    {"type": "EMA", "period": 9},
-    {"type": "EMA", "period": 21},
-    {"type": "RSI", "period": 14},
-    {"type": "ATR", "period": 14}
+    { "type": "EMA", "period": 9 },
+    { "type": "EMA", "period": 21 },
+    { "type": "RSI", "period": 14 },
+    { "type": "ATR", "period": 14 }
   ],
   "entry_conditions": [
-    {"left": "EMA_9", "op": ">", "right": "EMA_21"},
-    {"left": "RSI_14", "op": ">", "right": "55"}
+    { "left": "EMA_9", "op": ">", "right": "EMA_21" },
+    { "left": "RSI_14", "op": ">", "right": "55" }
   ],
   "exit_conditions": [
-    {"left": "EMA_9", "op": "crossunder", "right": "EMA_21"},
-    {"left": "RSI_14", "op": "<", "right": "40"}
+    { "left": "EMA_9", "op": "crossunder", "right": "EMA_21" },
+    { "left": "RSI_14", "op": "<", "right": "40" }
   ],
   "stop_loss_atr_multiple": 2.0,
   "take_profit_atr_multiple": 4.0
@@ -83,11 +85,11 @@ The skill produces structured JSON strategy configurations:
 
 ## Supported Indicators
 
-| Type | Parameters | Signals Generated |
-|------|-----------|-------------------|
-| EMA | period | `EMA_{period}` |
-| RSI | period | `RSI_{period}` |
-| ATR | period | `ATR_{period}` |
+| Type   | Parameters      | Signals Generated                            |
+| ------ | --------------- | -------------------------------------------- |
+| EMA    | period          | `EMA_{period}`                               |
+| RSI    | period          | `RSI_{period}`                               |
+| ATR    | period          | `ATR_{period}`                               |
 | BBands | period, std_dev | `BBANDS_{period}.upper`, `.middle`, `.lower` |
 
 ## Supported Operators
@@ -96,17 +98,18 @@ The skill produces structured JSON strategy configurations:
 
 ## Market Regimes
 
-| Regime | Description | Strategy Style |
-|--------|-------------|---------------|
-| `trending_up` | Bull market, strong momentum | Breakout / trend-following |
-| `trending_down` | Bear market, weak momentum | Cautious momentum |
-| `mean_reverting` | Range-bound, oscillating | Buy dips, sell rallies |
-| `high_volatility` | Large moves, high ATR | Volatility expansion |
-| `choppy` | No clear trend, tight range | Scalping / tight stops |
+| Regime            | Description                  | Strategy Style             |
+| ----------------- | ---------------------------- | -------------------------- |
+| `trending_up`     | Bull market, strong momentum | Breakout / trend-following |
+| `trending_down`   | Bear market, weak momentum   | Cautious momentum          |
+| `mean_reverting`  | Range-bound, oscillating     | Buy dips, sell rallies     |
+| `high_volatility` | Large moves, high ATR        | Volatility expansion       |
+| `choppy`          | No clear trend, tight range  | Scalping / tight stops     |
 
 ## Risk Gate Thresholds
 
 Every generated strategy must pass:
+
 - Minimum trades: ≥ 2
 - Max drawdown: ≤ 30%
 - Min win rate: ≥ 30%
@@ -114,22 +117,24 @@ Every generated strategy must pass:
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/optimize` | POST | Multi-agent optimization with CMC context |
-| `/api/backtest/detailed` | POST | Premade strategy backtest |
-| `/api/backtest/custom` | POST | Custom strategy backtest |
-| `/api/strategy/generate` | POST | Natural language → strategy config |
+| Endpoint                 | Method | Description                               |
+| ------------------------ | ------ | ----------------------------------------- |
+| `/api/optimize`          | POST   | Multi-agent optimization with CMC context |
+| `/api/backtest/detailed` | POST   | Premade strategy backtest                 |
+| `/api/backtest/custom`   | POST   | Custom strategy backtest                  |
+| `/api/strategy/generate` | POST   | Natural language → strategy config        |
 
 ## Example Usage
 
 ### Natural Language Input
+
 ```
 "Buy when RSI drops below 30 and price touches the lower Bollinger Band.
 Exit when RSI goes above 60. Use tight stop loss of 1.5x ATR."
 ```
 
 ### Optimization Request
+
 ```json
 {
   "symbol": "BNB",
@@ -140,6 +145,7 @@ Exit when RSI goes above 60. Use tight stop loss of 1.5x ATR."
 ```
 
 ### Response includes
+
 - `strategy_config` — Full structured strategy spec
 - `passed` — Whether it cleared the risk gate
 - `total_return_pct`, `max_drawdown_pct`, `win_rate`, `profit_factor`
