@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     gate_min_trades: int = 5
     gate_min_profit_factor: float = 1.2
 
+    # LLM API keys (set at least one)
+    nvidia_api_key: str = ""
+    google_api_key: str = ""
+
+    # Optimizer settings
+    optimizer_max_iterations: int = 3
+    optimizer_num_variants: int = 3
+    optimizer_enabled: bool = True
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
