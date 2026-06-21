@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Activity, Shield, Zap, Bot, Lock, TrendingUp } from 'lucide-react'
 
+import { ArbiterLogo } from '../components/ArbiterLogo';
+
 const fadeUp = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0 },
@@ -41,7 +43,7 @@ export function Landing() {
             <header className="border-b-[2.5px] border-border bg-white">
                 <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary border-[2.5px] border-border rounded flex items-center justify-center font-bold text-lg">A</div>
+                        <ArbiterLogo />
                         <span className="text-xl font-bold tracking-tight">Arbiter</span>
                     </div>
                     <Link to="/app" className="neo-btn neo-btn-primary text-sm">
