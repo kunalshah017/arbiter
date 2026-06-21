@@ -25,7 +25,7 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
     useEffect(() => {
         if (!containerRef.current) return
         const chart = createChart(containerRef.current, {
-            width: containerRef.current.clientWidth, height: 450,
+            width: containerRef.current.clientWidth, height: containerRef.current.clientHeight,
             layout: { background: { color: '#FFFFFF' }, textColor: '#1C293C', fontFamily: "'Inter', sans-serif" },
             grid: { vertLines: { color: '#f0f0ee' }, horzLines: { color: '#f0f0ee' } },
             crosshair: { mode: 0 },
@@ -51,10 +51,11 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
             if (logicalRange.from < 5) {
                 loadingMore.current = true
                 const oldestTs = barsRef.current[0].ts
-                fetch(`/api/ohlcv/${symbolRef.current}?interval=${intervalRef.current}&limit=200&endTime=${oldestTs * 1000}`)
+                fetch(`/api/ohlcv/${symbolRef.current}?interval=${intervalRef.current}&limit=500&endTime=${oldestTs * 1000}`)
                     .then(r => r.json())
                     .then((olderBars: OHLCVBar[]) => {
                         if (!olderBars || olderBars.length === 0) { loadingMore.current = false; return }
+                        olderBars.sort((a,b) => a.ts - b.ts)
                         const filtered = olderBars.filter(b => b.ts < oldestTs)
                         if (filtered.length === 0) { loadingMore.current = false; return }
                         const visibleRange = chart.timeScale().getVisibleLogicalRange()
@@ -76,31 +77,40 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
         })
 
         const handleResize = () => {
-            if (containerRef.current && chartRef.current) chartRef.current.applyOptions({ width: containerRef.current.clientWidth })
+            if (containerRef.current && chartRef.current) {
+                chartRef.current.applyOptions({ width: containerRef.current.clientWidth, height: containerRef.current.clientHeight })
+            }
         }
         window.addEventListener('resize', handleResize)
+        const observer = new ResizeObserver(() => handleResize())
+        observer.observe(containerRef.current)
+
         return () => {
             window.removeEventListener('resize', handleResize)
-            if (chartRef.current) { try { chartRef.current.remove() } catch { } }
+            observer.disconnect()
+            if (chartRef.current) { try { chartRef.current.remove() } catch {} }
             chartRef.current = null; candleRef.current = null; volumeRef.current = null
         }
     }, [])
 
-    // Load initial data on symbol/interval change (no chart recreation)
+    // Load initial data on symbol/interval change
     useEffect(() => {
         setLoading(true)
         barsRef.current = []
         setBarCount(0)
-        fetch(`/api/ohlcv/${symbol}?interval=${interval}&limit=300`)
+        fetch(`/api/ohlcv/${symbol}?interval=${interval}&limit=500`)
             .then(r => r.json())
             .then((data: OHLCVBar[]) => {
                 if (!data || data.length === 0) { setLoading(false); return }
+                data.sort((a,b) => a.ts - b.ts)
                 barsRef.current = data
                 setBarCount(data.length)
                 setLastPrice(data[data.length - 1]?.c || 0)
-                candleRef.current?.setData(data.map(b => ({ time: b.ts as any, open: b.o, high: b.h, low: b.l, close: b.c })))
-                volumeRef.current?.setData(data.map(b => ({ time: b.ts as any, value: b.v, color: b.c >= b.o ? 'rgba(22,163,74,0.3)' : 'rgba(220,38,38,0.3)' })))
-                chartRef.current?.timeScale().fitContent()
+                try {
+                    candleRef.current?.setData(data.map(b => ({ time: b.ts as any, open: b.o, high: b.h, low: b.l, close: b.c })))
+                    volumeRef.current?.setData(data.map(b => ({ time: b.ts as any, value: b.v, color: b.c >= b.o ? 'rgba(22,163,74,0.3)' : 'rgba(220,38,38,0.3)' })))
+                    chartRef.current?.timeScale().fitContent()
+                } catch(e) {}
                 setLoading(false)
             })
             .catch(() => setLoading(false))
@@ -123,28 +133,14 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
     useWebSocket({ url: `/ws/ohlcv/${symbol}?interval=${interval}`, onMessage: handleWsMessage, enabled: !loading && barCount > 0 })
 
     return (
-        <div className="neo-card p-4">
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-lg">{symbol}/USDT</h2>
-                <div className="flex gap-1">
-                    {['1m', '5m', '15m', '1h', '4h', '1d'].map(iv => (
-                        <button key={iv} onClick={() => setInterval_(iv)}
-                            className={`neo-btn text-xs px-3 py-1 ${interval === iv ? 'neo-btn-primary' : 'bg-white'}`}>{iv}</button>
-                    ))}
+        <div className="w-full h-full min-h-[300px] relative font-sans">
+            <div ref={containerRef} data-testid="ohlcv-chart" className="w-full h-full" />
+            
+            {loading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/80 font-mono text-sm opacity-50 z-20">
+                    Loading {symbol} data...
                 </div>
-            </div>
-            <div className="relative">
-                <div ref={containerRef} data-testid="ohlcv-chart" style={{ height: 450 }} />
-                {loading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 font-mono text-sm opacity-50">
-                        Loading {symbol} data...
-                    </div>
-                )}
-            </div>
-            <div className="mt-3 flex gap-4 text-xs font-mono opacity-60">
-                <span>Bars: {barCount}</span>
-                {lastPrice > 0 && <span>Last: ${lastPrice.toFixed(2)}</span>}
-            </div>
+            )}
         </div>
     )
 }
