@@ -12,11 +12,11 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
     const barsRef = useRef<OHLCVBar[]>([])
     const loadingMore = useRef(false)
     const symbolRef = useRef(symbol)
-    const intervalRef = useRef('1h')
+    const intervalRef = useRef('1m')
     const [barCount, setBarCount] = useState(0)
     const [lastPrice, setLastPrice] = useState(0)
     const [loading, setLoading] = useState(true)
-    const [interval, setInterval_] = useState('1h')
+    const [interval, setInterval_] = useState('1m')
 
     symbolRef.current = symbol
     intervalRef.current = interval
@@ -81,7 +81,7 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
         window.addEventListener('resize', handleResize)
         return () => {
             window.removeEventListener('resize', handleResize)
-            if (chartRef.current) { try { chartRef.current.remove() } catch {} }
+            if (chartRef.current) { try { chartRef.current.remove() } catch { } }
             chartRef.current = null; candleRef.current = null; volumeRef.current = null
         }
     }, [])
@@ -133,8 +133,14 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
                     ))}
                 </div>
             </div>
-            <div ref={containerRef} data-testid="ohlcv-chart" style={{ display: loading ? 'none' : 'block' }} />
-            {loading && <div className="h-[450px] flex items-center justify-center font-mono text-sm opacity-50">Loading {symbol} data...</div>}
+            <div className="relative">
+                <div ref={containerRef} data-testid="ohlcv-chart" style={{ height: 450 }} />
+                {loading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 font-mono text-sm opacity-50">
+                        Loading {symbol} data...
+                    </div>
+                )}
+            </div>
             <div className="mt-3 flex gap-4 text-xs font-mono opacity-60">
                 <span>Bars: {barCount}</span>
                 {lastPrice > 0 && <span>Last: ${lastPrice.toFixed(2)}</span>}
