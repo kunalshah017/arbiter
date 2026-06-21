@@ -7,6 +7,7 @@ import { BacktestChart } from '../components/BacktestChart'
 import { EquityCurve } from '../components/EquityCurve'
 import { TradeTable } from '../components/TradeTable'
 import { ArbiterLogo } from '../components/ArbiterLogo'
+import { TokenLogo } from '../components/TokenLogo'
 import {
     Activity, TrendingUp, TrendingDown, Target, Percent, Award,
     BarChart3, Zap, CheckCircle, XCircle, Sparkles, Search,
@@ -194,13 +195,16 @@ export function Dashboard() {
                 <div className="flex items-center gap-4">
                     {/* Toolbar Form */}
                     <div className="flex flex-col sm:flex-row items-center gap-2 bg-gray-50 border-[2.5px] border-border rounded p-1">
-                        <select
-                            className="bg-transparent border-r-[2px] border-border/30 px-2 py-1 text-sm font-bold outline-none cursor-pointer"
-                            value={symbol}
-                            onChange={(e) => setSymbol(e.target.value)}
-                        >
-                            {SYMBOLS.map(s => <option key={s} value={s}>{s}/USDT</option>)}
-                        </select>
+                        <div className="flex items-center pl-2 pr-1 border-r-[2px] border-border/30">
+                            <TokenLogo symbol={symbol} className="w-5 h-5 rounded-full border-[1.5px] border-border mr-1" />
+                            <select
+                                className="bg-transparent text-sm font-bold outline-none cursor-pointer"
+                                value={symbol}
+                                onChange={(e) => setSymbol(e.target.value)}
+                            >
+                                {SYMBOLS.map(s => <option key={s} value={s}>{s}/USDT</option>)}
+                            </select>
+                        </div>
                         <select
                             className="bg-transparent border-r-[2px] border-border/30 px-2 py-1 text-sm font-bold outline-none cursor-pointer"
                             value={interval}
@@ -349,8 +353,9 @@ export function Dashboard() {
                                 <div className="neo-card flex-1 flex flex-col overflow-hidden relative min-h-0">
                                     {/* Overlay info */}
                                     <div className="absolute top-4 left-4 z-10 pointer-events-none">
-                                        <span className="font-bold text-lg bg-white/80 px-2 py-1 rounded border-2 border-border backdrop-blur-sm">
-                                            {symbol} / USDT <span className="text-secondary tracking-widest text-xs uppercase">{interval}</span>
+                                        <span className="font-bold text-lg bg-white/90 px-3 py-1.5 rounded border-[2.5px] border-border shadow-[2px_2px_0px_var(--color-border)] backdrop-blur-sm flex items-center gap-2">
+                                            <TokenLogo symbol={symbol} className="w-6 h-6 rounded-full border-[1.5px] border-border" />
+                                            {symbol} / USDT <span className="text-secondary tracking-widest text-xs uppercase ml-1 opacity-80 bg-secondary/10 px-1 rounded">{interval}</span>
                                         </span>
                                     </div>
 
