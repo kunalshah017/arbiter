@@ -5,8 +5,8 @@ from agent.strategy_generator import _get_llm_client_and_model
 
 logger = structlog.get_logger()
 
-NVIDIA_ADVISOR_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
-GEMINI_ADVISOR_MODEL = "gemini-3.5-flash"
+NVIDIA_ADVISOR_MODEL = "deepseek-ai/deepseek-v4-flash"
+GEMINI_ADVISOR_MODEL = "gemini-2.0-flash"
 
 SYSTEM_PROMPT = """You are a quantitative trading strategy advisor. Analyze backtest results and provide specific, actionable feedback to improve strategy performance.
 

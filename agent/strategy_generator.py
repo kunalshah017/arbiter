@@ -10,22 +10,22 @@ NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1/"
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 NVIDIA_GENERATOR_MODEL = "deepseek-ai/deepseek-v4-flash"
-GEMINI_GENERATOR_MODEL = "gemini-3.5-flash"
+GEMINI_GENERATOR_MODEL = "gemini-2.0-flash"
 
 
 def _get_llm_client_and_model(nvidia_model: str, gemini_model: str) -> tuple[OpenAI | None, str]:
-    """Get LLM client preferring NVIDIA NIM, falling back to Google Gemini. Returns (None, '') if no key."""
-    if settings.nvidia_api_key:
-        client = OpenAI(base_url=NVIDIA_BASE_URL,
-                        api_key=settings.nvidia_api_key)
-        return client, nvidia_model
-    elif settings.google_api_key:
+    """Get LLM client. Prefers Google Gemini (faster), falls back to NVIDIA NIM. Returns (None, '') if no key."""
+    if settings.google_api_key:
         client = OpenAI(base_url=GEMINI_BASE_URL,
                         api_key=settings.google_api_key)
         return client, gemini_model
+    elif settings.nvidia_api_key:
+        client = OpenAI(base_url=NVIDIA_BASE_URL,
+                        api_key=settings.nvidia_api_key)
+        return client, nvidia_model
     else:
         logger.warning(
-            "llm.no_api_key", msg="No NVIDIA_API_KEY or GOOGLE_API_KEY set. Optimizer will use base templates only.")
+            "llm.no_api_key", msg="No GOOGLE_API_KEY or NVIDIA_API_KEY set. Optimizer will use base templates only.")
         return None, ""
 
 
