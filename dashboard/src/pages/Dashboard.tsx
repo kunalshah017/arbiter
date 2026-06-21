@@ -8,7 +8,7 @@ import { TradeTable } from '../components/TradeTable'
 import { ArbiterLogo } from '../components/ArbiterLogo'
 import {
     Activity, TrendingUp, TrendingDown, Target, Percent, Award,
-    BarChart3, Zap, CheckCircle, XCircle, Sparkles,
+    BarChart3, Zap, CheckCircle, XCircle, Sparkles, Search,
     AlertTriangle, Loader2, Shield, Settings2, History, RotateCcw
 } from 'lucide-react'
 
@@ -245,7 +245,7 @@ export function Dashboard() {
 
             {/* ── WORKSPACE ──────────────────────────────────────────────── */}
             <div className="flex-1 flex overflow-hidden">
-                
+
                 {/* ── LEFT PANE: STRATEGY & OPTIMIZER ── */}
                 <aside className="w-80 shrink-0 bg-white border-r-[2.5px] border-border flex flex-col overflow-y-auto hidden md:flex">
                     <div className="p-4 border-b-[2.5px] border-border bg-gray-50 flex items-center gap-2">
@@ -258,7 +258,7 @@ export function Dashboard() {
                                 {error}
                             </div>
                         )}
-                        
+
                         {!result ? (
                             <div className="h-full flex flex-col items-center justify-center opacity-40 text-center gap-3">
                                 <Search size={32} />
@@ -280,11 +280,11 @@ export function Dashboard() {
                                     )}
                                     {result.passed ? (
                                         <div className="text-xs text-green-700 font-bold flex items-center gap-1.5 bg-green-50 p-2 border-2 border-green-200 rounded">
-                                            <Shield size={14}/> Gate Passed: Viable Strategy
+                                            <Shield size={14} /> Gate Passed: Viable Strategy
                                         </div>
                                     ) : (
                                         <div className="text-xs text-red-700 font-bold flex items-center gap-1.5 bg-red-50 p-2 border-2 border-red-200 rounded">
-                                            <AlertTriangle size={14}/> Gate Failed: Not Viable
+                                            <AlertTriangle size={14} /> Gate Failed: Not Viable
                                         </div>
                                     )}
                                 </div>
@@ -347,7 +347,7 @@ export function Dashboard() {
                                     {symbol} / USDT <span className="text-secondary tracking-widest text-xs uppercase">{interval}</span>
                                 </span>
                             </div>
-                            
+
                             {result?.bars && result?.trades ? (
                                 <BacktestChart bars={result.bars} trades={result.trades} equityCurve={result.equity_curve as number[] || []} />
                             ) : (
@@ -384,43 +384,43 @@ export function Dashboard() {
                             <>
                                 {/* Primary Metrics Grid */}
                                 <div className="grid grid-cols-2 gap-2">
-                                    <MetricCard 
-                                        label="Total Return" 
+                                    <MetricCard
+                                        label="Total Return"
                                         value={`${result.total_return_pct >= 0 ? '+' : ''}${result.total_return_pct.toFixed(2)}%`}
-                                        icon={TrendingUp} 
+                                        icon={TrendingUp}
                                         color={result.total_return_pct >= 0 ? 'text-success' : 'text-danger'}
                                     />
-                                    <MetricCard 
-                                        label="Expectancy" 
+                                    <MetricCard
+                                        label="Expectancy"
                                         value={`${result.expectancy_pct >= 0 ? '+' : ''}${result.expectancy_pct.toFixed(2)}%`}
-                                        icon={Percent} 
+                                        icon={Percent}
                                         color={result.expectancy_pct >= 0 ? 'text-success' : 'text-danger'}
                                     />
-                                    <MetricCard 
-                                        label="Max Drawdown" 
+                                    <MetricCard
+                                        label="Max Drawdown"
                                         value={`${result.max_drawdown_pct.toFixed(2)}%`}
-                                        icon={TrendingDown} 
+                                        icon={TrendingDown}
                                         color="text-danger"
                                     />
-                                    <MetricCard 
-                                        label="Win Rate" 
+                                    <MetricCard
+                                        label="Win Rate"
                                         value={<div className="flex items-baseline gap-1">
                                             <span>{(result.win_rate).toFixed(1)}%</span>
                                             <span className="text-[10px] opacity-40">({winCount}/{trades.length})</span>
                                         </div>}
-                                        icon={Target} 
+                                        icon={Target}
                                         color={result.win_rate >= 50 ? 'text-success' : 'text-danger'}
                                     />
-                                    <MetricCard 
-                                        label="Profit Factor" 
+                                    <MetricCard
+                                        label="Profit Factor"
                                         value={result.profit_factor.toFixed(2)}
-                                        icon={Award} 
+                                        icon={Award}
                                         color={result.profit_factor >= 1.5 ? 'text-success' : result.profit_factor >= 1 ? 'text-yellow-600' : 'text-danger'}
                                     />
-                                    <MetricCard 
-                                        label="Sharpe Ratio" 
+                                    <MetricCard
+                                        label="Sharpe Ratio"
                                         value={derived.sharpe.toFixed(2)}
-                                        icon={Activity} 
+                                        icon={Activity}
                                         color={derived.sharpe >= 1 ? 'text-success' : derived.sharpe >= 0 ? 'text-yellow-600' : 'text-danger'}
                                     />
                                 </div>
@@ -450,8 +450,8 @@ export function Dashboard() {
                                     <div className="neo-card p-3">
                                         <h3 className="text-[10px] font-bold uppercase tracking-wider mb-2 opacity-60">W/L Distribution</h3>
                                         <div className="flex items-center w-full h-4 rounded overflow-hidden border-2 border-border mb-2">
-                                            <div className="h-full bg-success" style={{ width: `${(winCount / trades.length) * 100}%`}}></div>
-                                            <div className="h-full bg-danger" style={{ width: `${(lossCount / trades.length) * 100}%`}}></div>
+                                            <div className="h-full bg-success" style={{ width: `${(winCount / trades.length) * 100}%` }}></div>
+                                            <div className="h-full bg-danger" style={{ width: `${(lossCount / trades.length) * 100}%` }}></div>
                                         </div>
                                         <div className="flex justify-between text-[10px] font-bold">
                                             <span className="text-success">{winCount} WINS</span>

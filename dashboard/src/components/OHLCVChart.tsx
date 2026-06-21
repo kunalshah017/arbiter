@@ -55,7 +55,7 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
                     .then(r => r.json())
                     .then((olderBars: OHLCVBar[]) => {
                         if (!olderBars || olderBars.length === 0) { loadingMore.current = false; return }
-                        olderBars.sort((a,b) => a.ts - b.ts)
+                        olderBars.sort((a, b) => a.ts - b.ts)
                         const filtered = olderBars.filter(b => b.ts < oldestTs)
                         if (filtered.length === 0) { loadingMore.current = false; return }
                         const visibleRange = chart.timeScale().getVisibleLogicalRange()
@@ -88,7 +88,7 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
         return () => {
             window.removeEventListener('resize', handleResize)
             observer.disconnect()
-            if (chartRef.current) { try { chartRef.current.remove() } catch {} }
+            if (chartRef.current) { try { chartRef.current.remove() } catch { } }
             chartRef.current = null; candleRef.current = null; volumeRef.current = null
         }
     }, [])
@@ -102,7 +102,7 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
             .then(r => r.json())
             .then((data: OHLCVBar[]) => {
                 if (!data || data.length === 0) { setLoading(false); return }
-                data.sort((a,b) => a.ts - b.ts)
+                data.sort((a, b) => a.ts - b.ts)
                 barsRef.current = data
                 setBarCount(data.length)
                 setLastPrice(data[data.length - 1]?.c || 0)
@@ -110,7 +110,7 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
                     candleRef.current?.setData(data.map(b => ({ time: b.ts as any, open: b.o, high: b.h, low: b.l, close: b.c })))
                     volumeRef.current?.setData(data.map(b => ({ time: b.ts as any, value: b.v, color: b.c >= b.o ? 'rgba(22,163,74,0.3)' : 'rgba(220,38,38,0.3)' })))
                     chartRef.current?.timeScale().fitContent()
-                } catch(e) {}
+                } catch (e) { }
                 setLoading(false)
             })
             .catch(() => setLoading(false))
@@ -135,7 +135,7 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
     return (
         <div className="w-full h-full min-h-[300px] relative font-sans">
             <div ref={containerRef} data-testid="ohlcv-chart" className="w-full h-full" />
-            
+
             {loading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/80 font-mono text-sm opacity-50 z-20">
                     Loading {symbol} data...
