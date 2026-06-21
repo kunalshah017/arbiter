@@ -109,7 +109,15 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
                 try {
                     candleRef.current?.setData(data.map(b => ({ time: b.ts as any, open: b.o, high: b.h, low: b.l, close: b.c })))
                     volumeRef.current?.setData(data.map(b => ({ time: b.ts as any, value: b.v, color: b.c >= b.o ? 'rgba(22,163,74,0.3)' : 'rgba(220,38,38,0.3)' })))
-                    chartRef.current?.timeScale().fitContent()
+
+                    const ts = chartRef.current?.timeScale()
+                    if (ts) {
+                        const visibleBars = 100
+                        ts.setVisibleLogicalRange({
+                            from: Math.max(0, data.length - visibleBars),
+                            to: data.length - 1
+                        })
+                    }
                 } catch (e) { }
                 setLoading(false)
             })
