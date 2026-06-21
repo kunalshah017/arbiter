@@ -401,18 +401,41 @@ async def get_agent_status():
 
 @app.post("/api/optimize")
 async def run_optimization(req: BacktestRequest):
-    """Run the strategy optimization loop for a symbol."""
+    """Run the strategy optimization loop for a symbol, enriched with CMC data."""
     from agent.optimizer import StrategyOptimizer
+    from integrations.cmc import CMCClient
     try:
         regime = Regime(req.regime)
     except ValueError:
         raise HTTPException(400, f"Invalid regime: {req.regime}")
-    bars = await binance.fetch_ohlcv(req.symbol, interval=req.interval, limit=req.limit)
+    effective_limit = max(req.limit, INTERVAL_MIN_BARS.get(req.interval, 720))
+    bars = await binance.fetch_ohlcv(req.symbol, interval=req.interval, limit=effective_limit)
     if not bars or len(bars) < 50:
         raise HTTPException(400, f"Insufficient data for {req.symbol}")
     engine_bars = bars_to_engine_json(bars)
+
+    # Enrich with CMC Agent Hub data for regime context
+    cmc_context = ""
+    try:
+        cmc = CMCClient()
+        global_metrics = await cmc.get_global_metrics()
+        derivatives = await cmc.get_derivatives_metrics()
+        ta_data = await cmc.get_technical_analysis(req.symbol)
+        if global_metrics:
+            cmc_context += f"CMC Global Metrics: {json.dumps(global_metrics)[:500]}\n"
+        if derivatives:
+            cmc_context += f"CMC Derivatives: {json.dumps(derivatives)[:500]}\n"
+        if ta_data:
+            cmc_context += f"CMC Technical Analysis ({req.symbol}): {json.dumps(ta_data)[:500]}\n"
+        await cmc.close()
+    except Exception:
+        pass  # CMC data is enrichment, not required
+
+    seed_feedback = f"Market context from CMC Agent Hub:\n{cmc_context}" if cmc_context else None
+
     optimizer = StrategyOptimizer()
-    result = optimizer.optimize(regime, json.dumps(engine_bars))
+    result = optimizer.optimize(regime, json.dumps(
+        engine_bars), seed_feedback=seed_feedback)
     return {
         "status": result.status,
         "iteration": result.iteration,

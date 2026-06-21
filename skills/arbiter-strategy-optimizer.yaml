@@ -1,0 +1,148 @@
+name: arbiter-strategy-optimizer
+version: 1.0.0
+description: |
+  Regime-aware crypto strategy generation with closed-loop Rust backtest validation.
+  Uses CMC Agent Hub data (Fear & Greed, derivatives, technical analysis) to classify
+  market regimes, then generates and validates quantitative trading strategies through
+  a multi-agent LLM optimization loop. Every strategy is backtested against real OHLCV
+  data in <50ms before being accepted — no unvalidated guesses.
+
+  Use it when you need a backtestable crypto strategy spec with proven positive
+  expectancy for a specific market regime and token pair. The skill returns structured
+  entry/exit rules, indicator configurations, and risk parameters alongside full
+  backtest metrics (return, drawdown, win rate, profit factor, trade count).
+
+  Limits: strategies are optimized against historical data and do not guarantee
+  future performance. The skill requires sufficient price history (30+ days recommended)
+  and is research-oriented — output is a validated strategy specification, not a
+  direct trade instruction.
+
+author: kunalshah017
+repository: https://github.com/kunalshah017/arbiter
+license: MIT
+
+tags:
+  - strategy
+  - backtest
+  - market-data
+  - derivatives-market-data
+  - risk
+  - asset
+  - intraday
+  - daily
+
+capabilities:
+  - regime_classification
+  - strategy_generation
+  - backtest_validation
+  - multi_agent_optimization
+  - natural_language_strategy
+
+data_sources:
+  - name: CoinMarketCap MCP
+    usage: |
+      Global metrics (Fear & Greed Index, BTC dominance, total market cap),
+      derivatives data (funding rates, open interest, leverage),
+      technical analysis (RSI, EMA, MACD pre-computed),
+      trending narratives for context
+    tools:
+      - get_global_metrics_latest
+      - get_global_crypto_derivatives_metrics
+      - get_crypto_technical_analysis
+      - get_crypto_quotes_latest
+      - trending_crypto_narratives
+
+  - name: Binance Public API
+    usage: OHLCV price history for backtest engine input
+
+inputs:
+  - name: symbol
+    type: string
+    required: true
+    description: Trading pair symbol (e.g. BNB, ETH, XRP)
+
+  - name: interval
+    type: string
+    required: false
+    default: "1h"
+    description: Candle interval for backtest (1m, 5m, 15m, 1h, 4h, 1d)
+
+  - name: prompt
+    type: string
+    required: false
+    description: Natural language strategy description (optional — if provided, AI generates the config)
+
+  - name: regime
+    type: string
+    required: false
+    description: Market regime override (trending_up, trending_down, mean_reverting, high_volatility, choppy). Auto-detected via CMC data if omitted.
+
+outputs:
+  - name: strategy_config
+    type: object
+    description: |
+      Complete strategy specification including:
+      - indicators (type, period, parameters)
+      - entry_conditions (signal comparisons)
+      - exit_conditions (signal comparisons)
+      - stop_loss_atr_multiple
+      - take_profit_atr_multiple
+
+  - name: backtest_results
+    type: object
+    description: |
+      Validated backtest metrics:
+      - total_return_pct
+      - max_drawdown_pct
+      - win_rate
+      - num_trades
+      - profit_factor
+      - expectancy_pct
+      - trade_pnls (individual trade returns)
+      - equity_curve
+
+  - name: gate_result
+    type: object
+    description: |
+      Risk gate validation:
+      - passed (boolean)
+      - rejection_reasons (if failed)
+
+architecture:
+  engine: Rust (PyO3 bindings)
+  latency: "<50ms per backtest"
+  agents:
+    - name: Regime Classifier
+      model: gemini-3.1-flash-lite
+      role: Classifies current market regime using CMC global metrics + derivatives data
+
+    - name: Strategy Generator
+      model: gemini-3.1-flash-lite
+      role: Proposes strategy variants tuned to detected regime
+
+    - name: Strategy Advisor
+      model: gemini-3.1-flash-lite
+      role: Reviews failed backtests, identifies weaknesses, suggests improvements
+
+  loop: |
+    1. CMC Agent Hub → Regime Classification (Fear & Greed + Derivatives + TA)
+    2. Generator LLM → Strategy proposal (indicators + entry/exit rules)
+    3. Rust Engine → Backtest validation (<50ms, full OHLCV replay)
+    4. Risk Gate → Threshold checks (min trades, drawdown cap, profit factor)
+    5. If failed: Advisor LLM → Feedback → Generator retries (max 3 iterations)
+    6. Output: Validated strategy spec + full backtest report
+
+mcp_server:
+  url: "http://localhost:8000"
+  tools:
+    - name: generate_strategy
+      description: Generate a validated trading strategy for a given symbol and regime
+      endpoint: POST /api/optimize
+
+    - name: custom_backtest
+      description: Backtest a user-defined strategy configuration
+      endpoint: POST /api/backtest/custom
+
+    - name: nl_strategy
+      description: Convert natural language to structured strategy config
+      endpoint: POST /api/strategy/generate

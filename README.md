@@ -1,187 +1,172 @@
-# Arbiter — AI Strategy Skill with Backtest Validation
+# Arbiter — AI Strategy Skill with Closed-Loop Rust Validation
 
 > **BNB Hack: AI Trading Agent Edition | Track 2: Strategy Skills**
 
-A CMC Strategy Skill that generates regime-aware crypto trading strategies through a closed-loop optimization system — LLM proposes, Rust engine validates, Advisor LLM iterates — producing backtestable strategy specs with proven edge.
+A CMC Strategy Skill that uses multi-agent LLM optimization with Rust backtest validation to produce regime-aware trading strategies with proven edge — not guesses.
 
-## How It Works
+## The Problem
+
+LLM-generated trading strategies are **unvalidated opinions**. Every "AI strategy generator" today does:
 
 ```
-CMC Agent Hub → LLM classifies regime → Generator LLM proposes strategy →
-Rust engine backtests in <50ms → Pass? Output spec. Fail? Advisor iterates.
+Prompt LLM → Get rules → Hope it works
 ```
 
-1. **Regime Detection**: CMC MCP tools (global metrics, derivatives, fear & greed) feed an LLM that classifies the market into 5 regimes
-2. **Strategy Generation**: A generator LLM produces entry/exit rules tuned to the detected regime
-3. **Rust Validation**: Every strategy is backtested against 30 days of real OHLCV data in <50ms
-4. **Advisor Loop**: Failed strategies get diagnosed by an advisor LLM that suggests improvements — loop repeats until pass or max iterations
+No feedback loop. No quantitative validation. No iteration based on real market data.
+
+## The Solution
+
+A **closed-loop strategy optimization system** where:
+
+1. **CMC Agent Hub** provides regime classification data (Fear & Greed, derivatives, technical analysis)
+2. **Generator LLM** proposes strategy rules tuned to the detected regime
+3. **Rust Backtest Engine** validates every strategy against 30 days of real OHLCV data in <50ms
+4. **Advisor LLM** reviews failed results, identifies weaknesses, suggests improvements
+5. **Loop repeats** until the strategy passes quantitative thresholds
 
 **The LLM doesn't guess — it iterates with evidence.**
 
 ## Architecture
 
-| Layer             | Technology                                                |
-| ----------------- | --------------------------------------------------------- |
-| Orchestrator      | Python 3.11+ / asyncio                                    |
-| Backtest Engine   | Rust (PyO3) — 22 technical indicators, <50ms per run      |
-| Market Data       | Binance public API (OHLCV)                                |
-| Regime Signals    | CMC Agent Hub (MCP) — global metrics, derivatives, TA     |
-| LLM Agents        | GPT-4o-mini (generator + regime classifier + advisor)     |
-| Dashboard         | Vite + React + TradingView Lightweight Charts             |
-| API Server        | FastAPI + WebSocket                                       |
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ARBITER STRATEGY SKILL                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
+│  │  CMC Agent   │───▶│   Regime     │───▶│  Strategy    │      │
+│  │  Hub (MCP)   │    │  Classifier  │    │  Generator   │      │
+│  │              │    │  (LLM)       │    │  (LLM)       │      │
+│  │ • F&G Index  │    │              │    │              │      │
+│  │ • Derivatives│    │ 5 regimes:   │    │ • Indicators │      │
+│  │ • Tech Anal. │    │ trending_up  │    │ • Entry rules│      │
+│  │ • Narratives │    │ trending_down│    │ • Exit rules │      │
+│  └──────────────┘    │ mean_revert  │    │ • Risk params│      │
+│                      │ volatile     │    └──────┬───────┘      │
+│                      │ choppy       │           │              │
+│                      └──────────────┘           ▼              │
+│                                        ┌──────────────┐        │
+│  ┌──────────────┐    ┌──────────────┐  │ Rust Engine  │        │
+│  │   Advisor    │◀───│  Risk Gate   │◀─│ (PyO3)       │        │
+│  │   (LLM)     │    │              │  │              │        │
+│  │              │    │ • min trades │  │ • <50ms      │        │
+│  │ "Try wider  │    │ • drawdown   │  │ • Full OHLCV │        │
+│  │  stops..."  │    │ • win rate   │  │   replay     │        │
+│  └──────┬───────┘    │ • profit fac │  │ • Indicator  │        │
+│         │            └──────────────┘  │   compute    │        │
+│         │                              └──────────────┘        │
+│         └──────── feedback loop (max 3 iterations) ────────▶   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-## Setup
+## CMC Agent Hub Integration
 
-### Prerequisites
+Arbiter uses the CoinMarketCap MCP server for:
 
-- Python 3.11+
-- Rust toolchain (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
-- Node.js 18+ (for dashboard)
+| Tool | Usage |
+|------|-------|
+| `get_global_metrics_latest` | Fear & Greed Index, BTC dominance, total market cap for regime detection |
+| `get_global_crypto_derivatives_metrics` | Funding rates, open interest, leverage for positioning context |
+| `get_crypto_technical_analysis` | Pre-computed RSI, EMA, MACD for signal confirmation |
+| `get_crypto_quotes_latest` | Real-time price data for target tokens |
+| `trending_crypto_narratives` | Narrative context for strategy generation |
 
-### Install
+This data feeds directly into the optimization loop's `seed_feedback` parameter, giving the LLM agents market context before generating strategies.
+
+## Key Features
+
+- **Sub-50ms backtests** — Rust engine (PyO3 bindings) replays full OHLCV history with indicator computation
+- **5 validated strategies** — All pass gate validation on real BNB/USDT data (30 days, 1h candles)
+- **Multi-agent optimization** — Generator + Advisor LLMs iterate until quality thresholds are met
+- **Natural language input** — Users describe strategies in English; AI converts to structured config
+- **Custom strategy builder** — Full UI for manual indicator/rule configuration
+- **Regime-aware** — Automatically selects optimal strategy parameters per market condition
+- **Risk gates** — Every strategy must pass: min trades, max drawdown, min win rate, profit factor
+
+## Strategy Output Format
+
+```json
+{
+  "indicators": [
+    {"type": "EMA", "period": 9},
+    {"type": "EMA", "period": 21},
+    {"type": "RSI", "period": 14},
+    {"type": "ATR", "period": 14}
+  ],
+  "entry_conditions": [
+    {"left": "EMA_9", "op": ">", "right": "EMA_21"},
+    {"left": "RSI_14", "op": ">", "right": "55"}
+  ],
+  "exit_conditions": [
+    {"left": "EMA_9", "op": "crossunder", "right": "EMA_21"},
+    {"left": "RSI_14", "op": "<", "right": "40"}
+  ],
+  "stop_loss_atr_multiple": 2.0,
+  "take_profit_atr_multiple": 4.0
+}
+```
+
+## Backtest Results (BNB/USDT, 1h, 30 days)
+
+| Strategy | Trades | Return | Win Rate | Profit Factor |
+|----------|--------|--------|----------|---------------|
+| Momentum Breakout | 20 | +8.94% | 50.0% | 1.76 |
+| Mean Reversion | 17 | +5.09% | 52.9% | 1.46 |
+| Volatility Breakout | 27 | +5.67% | 40.7% | 1.51 |
+| Cautious Momentum | 22 | +4.61% | 45.5% | 1.37 |
+| Tight Range Scalper | 42 | +12.70% | 47.6% | 1.95 |
+
+## Quick Start
 
 ```bash
+# Clone
 git clone https://github.com/kunalshah017/arbiter
 cd arbiter
+
+# Backend setup
 python -m venv .venv && source .venv/bin/activate
-pip install maturin && maturin develop --release
 pip install -e .
-```
 
-### Configure
-
-```bash
+# Set API keys in .env
 cp .env.example .env
-# Add: OPENAI_API_KEY, CMC_API_KEY
-```
+# Add: GOOGLE_API_KEY=your-gemini-key
+# Add: CMC_API_KEY=your-cmc-key (optional, enriches regime detection)
 
-### Dashboard
+# Build Rust engine
+cd engine && maturin develop --release && cd ..
 
-```bash
+# Start API server
+uvicorn server.api:app --reload --port 8000
+
+# Start dashboard
 cd dashboard && npm install && npm run dev
 ```
 
-## How to Run
-
-### Strategy Optimization Loop (main feature)
-
-```bash
-python -m agent.main
-```
-
-This runs the full optimization loop: regime detection → strategy generation → backtest validation → advisory iteration.
-
-### Manual Backtest (test specific token + regime)
-
-```bash
-python scripts/manual_backtest.py BNB trending_up
-python scripts/manual_backtest.py ETH mean_reverting
-python scripts/manual_backtest.py SOL high_volatility
-```
-
-### API Server (for dashboard)
-
-```bash
-uvicorn server.api:app --reload --port 8000
-```
-
-### Dashboard UI
-
-```bash
-cd dashboard && npm run dev
-# Open http://localhost:5173
-```
-
-### Docker
-
-```bash
-docker compose up -d
-```
-
-## Decision Gate Thresholds
-
-Every generated strategy must pass ALL criteria before acceptance:
-
-| Metric           | Threshold    | Purpose                        |
-| ---------------- | ------------ | ------------------------------ |
-| Expected return  | > 0.5%       | Positive expectancy required   |
-| Max drawdown     | < -15%       | Risk-controlled                |
-| Win rate         | > 35%        | Not random noise               |
-| Minimum trades   | ≥ 5          | Statistical significance       |
-| Profit factor    | > 1.2        | Reward exceeds risk            |
-
-Strategies that fail are sent to the Advisor LLM for diagnosis and improvement, not discarded.
-
-## CMC Agent Hub Usage
-
-Arbiter uses CMC Agent Hub via MCP protocol for regime classification:
-
-| MCP Tool                   | What We Extract                          |
-| -------------------------- | ---------------------------------------- |
-| `get_global_metrics`       | Market cap dominance, total volume       |
-| `get_fear_greed_index`     | Sentiment extremes (greed/fear)          |
-| `get_derivatives_data`     | Funding rates, open interest positioning |
-| `get_technical_indicators` | RSI, MACD on major assets                |
-| `get_trending_tokens`      | Momentum candidates                      |
-
-These signals determine which of 5 regimes the market is in, which determines what TYPE of strategy the generator LLM produces.
-
-## Market Regimes
-
-| Regime           | Strategy Approach                        |
-| ---------------- | ---------------------------------------- |
-| Trending Up      | Momentum breakouts, trailing stops       |
-| Trending Down    | Short momentum, defensive positioning    |
-| Mean Reverting   | Fade at BBand extremes, RSI reversals    |
-| High Volatility  | Wide stops, volatility capture           |
-| Choppy           | Conservative / skip                      |
-
 ## Tech Stack
 
-- **Python 3.11+** — orchestration, LLM calls, data pipeline
-- **Rust (PyO3 + maturin)** — backtest engine, 22 indicators via nautilus-indicators
-- **CMC Agent Hub (MCP)** — regime classification data
-- **Binance API** — OHLCV candlestick data
-- **GPT-4o-mini** — strategy generation, regime classification, advisory
-- **FastAPI + WebSocket** — live backtest API
-- **Vite + React + lightweight-charts** — dashboard visualization
-- **BNB AI Agent SDK** — ERC-8004 on-chain identity
+| Layer | Technology |
+|-------|-----------|
+| Backtest Engine | Rust + PyO3 + nautilus-indicators |
+| API Server | Python, FastAPI, async |
+| LLM Agents | Gemini 3.1 Flash Lite (via OpenAI SDK) |
+| Data | Binance OHLCV + CMC MCP (global metrics, derivatives, TA) |
+| Dashboard | React 19 + Vite + TailwindCSS + Framer Motion |
+| Charts | Lightweight Charts (TradingView) |
 
-## Strategy Results Example
+## Skill Definition
 
-```
-Token:    BNBUSDT
-Regime:   trending_up
-Strategy: Momentum Breakout v3 (iteration 3 of 5)
+See [`skills/arbiter-strategy-optimizer.yaml`](skills/arbiter-strategy-optimizer.yaml) for the full CMC Skill specification.
 
-Entry: EMA(9) > EMA(21) AND RSI > 55 AND MACD histogram > 0
-Exit:  EMA(9) < EMA(21) OR trailing stop at 2×ATR
+## API Endpoints
 
-Backtest (30d):
-  Return:        +6.2%
-  Max Drawdown:  -4.8%
-  Win Rate:      58%
-  Trades:        14
-  Sharpe:        1.84
-  Profit Factor: 2.1
-
-Gate: ✅ PASS (all thresholds met)
-```
-
-## Project Structure
-
-```
-agent/           — Orchestrator, regime classifier, strategy generator, advisor, gate
-engine/          — Rust backtest engine (PyO3 bindings)
-integrations/    — Binance, CMC MCP, BNB SDK
-data/            — Database models, OHLCV transforms
-risk/            — Position sizing, guardrails, portfolio tracking
-server/          — FastAPI endpoints + WebSocket
-dashboard/       — React + Vite frontend
-config/          — Strategy templates, token lists, settings
-scripts/         — Manual backtest, registration
-tests/           — 38 tests (all passing)
-```
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/optimize` | Run multi-agent optimization loop with CMC context |
+| `POST /api/backtest/detailed` | Run premade strategy backtest |
+| `POST /api/backtest/custom` | Run user-defined strategy backtest |
+| `POST /api/strategy/generate` | Natural language → structured strategy config |
+| `GET /api/ohlcv/{symbol}` | Fetch OHLCV data |
 
 ## License
 
