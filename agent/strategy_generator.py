@@ -13,8 +13,8 @@ NVIDIA_GENERATOR_MODEL = "deepseek-ai/deepseek-v4-flash"
 GEMINI_GENERATOR_MODEL = "gemini-3.5-flash"
 
 
-def _get_llm_client_and_model(nvidia_model: str, gemini_model: str) -> tuple[OpenAI, str]:
-    """Get LLM client preferring NVIDIA NIM, falling back to Google Gemini."""
+def _get_llm_client_and_model(nvidia_model: str, gemini_model: str) -> tuple[OpenAI | None, str]:
+    """Get LLM client preferring NVIDIA NIM, falling back to Google Gemini. Returns (None, '') if no key."""
     if settings.nvidia_api_key:
         client = OpenAI(base_url=NVIDIA_BASE_URL,
                         api_key=settings.nvidia_api_key)
@@ -24,8 +24,8 @@ def _get_llm_client_and_model(nvidia_model: str, gemini_model: str) -> tuple[Ope
                         api_key=settings.google_api_key)
         return client, gemini_model
     else:
-        raise RuntimeError(
-            "No LLM API key configured. Set NVIDIA_API_KEY or GOOGLE_API_KEY.")
+        logger.warning("llm.no_api_key", msg="No NVIDIA_API_KEY or GOOGLE_API_KEY set. Optimizer will use base templates only.")
+        return None, ""
 
 
 SYSTEM_PROMPT = """You are a quantitative trading strategy designer. Given a base strategy template, generate variants that modify indicator parameters, entry/exit conditions, or stop-loss/take-profit levels.
@@ -51,6 +51,11 @@ class StrategyGenerator:
 
     def generate_variants(self, base_template: dict, num_variants: int = 3, feedback: str | None = None) -> list[dict]:
         """Generate strategy variants from a base template."""
+        # If no LLM client available, just return the base template as-is
+        if self.client is None:
+            logger.info("strategy_generator.no_llm", msg="Using base template only (no API key)")
+            return [self._normalize_config(base_template)]
+
         user_msg = f"Base strategy:\n```json\n{json.dumps(base_template, indent=2)}\n```\n\nGenerate {num_variants} variants."
         if feedback:
             user_msg += f"\n\nFeedback from previous iteration:\n{feedback}"
