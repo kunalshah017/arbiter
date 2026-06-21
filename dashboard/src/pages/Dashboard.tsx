@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Markdown from 'react-markdown'
-import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels"
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels"
 import { OHLCVChart } from '../components/OHLCVChart'
 import { BacktestChart } from '../components/BacktestChart'
 import { EquityCurve } from '../components/EquityCurve'
