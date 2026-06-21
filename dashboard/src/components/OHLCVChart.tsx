@@ -127,7 +127,7 @@ export function OHLCVChart({ symbol }: { symbol: string }) {
             <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-lg">{symbol}/USDT</h2>
                 <div className="flex gap-1">
-                    {['15m', '1h', '4h', '1d'].map(iv => (
+                    {['1m', '5m', '15m', '1h', '4h', '1d'].map(iv => (
                         <button key={iv} onClick={() => setInterval_(iv)}
                             className={`neo-btn text-xs px-3 py-1 ${interval === iv ? 'neo-btn-primary' : 'bg-white'}`}>{iv}</button>
                     ))}

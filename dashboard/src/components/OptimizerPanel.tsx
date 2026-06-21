@@ -41,7 +41,7 @@ export function OptimizerPanel({ symbol }: { symbol: string }) {
             const resp = await fetch('/api/optimize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ symbol, regime, interval: '1h', limit: 720 }),
+                body: JSON.stringify({ symbol, regime, interval: '1m', limit: 1000 }),
             })
             if (!resp.ok) { const d = await resp.json(); throw new Error(d.detail || 'Failed') }
             setResult(await resp.json())
