@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, Play, RotateCcw, ChevronDown, ChevronUp, Zap, Target, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, Play, RotateCcw, ChevronDown, ChevronUp, Zap, Target, AlertTriangle, Sparkles, Loader2, MessageSquare } from 'lucide-react'
 
 const INDICATOR_TYPES = ['EMA', 'RSI', 'ATR', 'BBands']
 const OPERATORS = ['>', '<', '>=', '<=', 'crossover', 'crossunder']
@@ -55,6 +55,38 @@ export function StrategyBuilder({ symbol, interval, onResult, onRunning, onError
     })
 
     const [expandedSection, setExpandedSection] = useState<string | null>('indicators')
+    const [nlPrompt, setNlPrompt] = useState('')
+    const [nlLoading, setNlLoading] = useState(false)
+
+    const generateFromPrompt = async () => {
+        if (!nlPrompt.trim()) return
+        setNlLoading(true)
+        onError('')
+        try {
+            const resp = await fetch('/api/strategy/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: nlPrompt.trim() }),
+            })
+            if (!resp.ok) {
+                const d = await resp.json()
+                throw new Error(d.detail || 'Failed to generate strategy')
+            }
+            const config = await resp.json()
+            setStrategy({
+                indicators: config.indicators || [],
+                entry_conditions: config.entry_conditions || [],
+                exit_conditions: config.exit_conditions || [],
+                stop_loss_atr_multiple: config.stop_loss_atr_multiple ?? 2.0,
+                take_profit_atr_multiple: config.take_profit_atr_multiple ?? 4.0,
+            })
+            setExpandedSection('indicators')
+        } catch (e: unknown) {
+            onError(e instanceof Error ? e.message : 'Failed to generate')
+        } finally {
+            setNlLoading(false)
+        }
+    }
 
     const addIndicator = () => {
         setStrategy(s => ({
@@ -188,6 +220,37 @@ export function StrategyBuilder({ symbol, interval, onResult, onRunning, onError
 
     return (
         <div className="flex flex-col gap-3 h-full overflow-y-auto text-sm p-1">
+            {/* Natural Language Prompt */}
+            <div className="neo-card overflow-hidden">
+                <div className="p-3 flex flex-col gap-2">
+                    <div className="flex items-center gap-2 mb-1">
+                        <MessageSquare size={14} className="text-secondary" />
+                        <span className="font-bold text-xs uppercase tracking-wider">Describe Your Strategy</span>
+                    </div>
+                    <textarea
+                        value={nlPrompt}
+                        onChange={e => setNlPrompt(e.target.value)}
+                        placeholder="e.g. Buy when RSI drops below 30 and price touches the lower Bollinger Band. Exit when RSI goes above 60. Use tight stop loss."
+                        className="neo-input text-xs py-2 px-3 w-full resize-none font-medium leading-relaxed"
+                        rows={3}
+                    />
+                    <button
+                        onClick={generateFromPrompt}
+                        disabled={nlLoading || !nlPrompt.trim()}
+                        className="neo-btn neo-btn-secondary text-white flex items-center justify-center gap-2 text-xs font-bold py-2 w-full disabled:opacity-50"
+                    >
+                        {nlLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                        {nlLoading ? 'Generating...' : 'Generate with AI'}
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2 opacity-40">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[10px] font-bold uppercase">or configure manually</span>
+                <div className="flex-1 h-px bg-border" />
+            </div>
+
             {/* Indicators Section */}
             <div className="neo-card overflow-hidden">
                 <button

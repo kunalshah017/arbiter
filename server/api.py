@@ -56,6 +56,95 @@ class CustomBacktestRequest(BaseModel):
     initial_capital: float = 10000.0
 
 
+class NLStrategyRequest(BaseModel):
+    prompt: str
+
+
+@app.post("/api/strategy/generate")
+async def generate_strategy_from_prompt(req: NLStrategyRequest):
+    """Use LLM to convert a natural language strategy description into structured config."""
+    from agent.strategy_generator import _get_llm_client_and_model, GEMINI_GENERATOR_MODEL, NVIDIA_GENERATOR_MODEL
+
+    client, model = _get_llm_client_and_model(
+        NVIDIA_GENERATOR_MODEL, GEMINI_GENERATOR_MODEL)
+    if client is None:
+        raise HTTPException(
+            500, "No LLM API key configured (GOOGLE_API_KEY or NVIDIA_API_KEY)")
+
+    system_prompt = """You are a quantitative trading strategy configuration assistant.
+The user will describe a trading strategy in natural language. Convert it into a structured JSON config.
+
+You MUST output ONLY valid JSON with this exact schema:
+{
+  "indicators": [{"type": "EMA"|"RSI"|"ATR"|"BBands", "period": <int>, "std_dev": <float optional>}],
+  "entry_conditions": [{"left": "<signal>", "op": ">"|"<"|">="|"<="|"crossover"|"crossunder", "right": "<signal_or_number>"}],
+  "exit_conditions": [{"left": "<signal>", "op": ">"|"<"|">="|"<="|"crossover"|"crossunder", "right": "<signal_or_number>"}],
+  "stop_loss_atr_multiple": <float>,
+  "take_profit_atr_multiple": <float>
+}
+
+Signal naming rules:
+- EMA with period 9 → "EMA_9"
+- RSI with period 14 → "RSI_14"
+- ATR with period 14 → "ATR_14"
+- BBands with period 20 → "BBANDS_20.upper", "BBANDS_20.middle", "BBANDS_20.lower"
+- Price values: "close", "open", "high", "low"
+- Numeric thresholds are strings: "55", "30", "70"
+
+Examples:
+- "Buy when fast EMA crosses above slow EMA and RSI is above 50" →
+  indicators: EMA 9, EMA 21, RSI 14, ATR 14
+  entry: EMA_9 crossover EMA_21, RSI_14 > 50
+  exit: EMA_9 crossunder EMA_21
+
+- "Mean reversion: buy when price is below lower bollinger band and RSI oversold" →
+  indicators: BBands 20, RSI 14, ATR 14
+  entry: close < BBANDS_20.lower, RSI_14 < 30
+  exit: close > BBANDS_20.middle, RSI_14 > 50
+
+Always include ATR indicator (needed for stop/take profit). Output ONLY the JSON object, no markdown fences or explanation."""
+
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": req.prompt},
+            ],
+            temperature=0.3,
+            max_tokens=1000,
+        )
+        content = response.choices[0].message.content.strip()
+        # Strip markdown fences if present
+        if content.startswith("```"):
+            content = content.split(
+                "\n", 1)[1] if "\n" in content else content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
+
+        config = json.loads(content)
+
+        # Validate required fields
+        required = ["indicators", "entry_conditions", "exit_conditions"]
+        for field in required:
+            if field not in config or not isinstance(config[field], list) or len(config[field]) == 0:
+                raise ValueError(f"Missing or empty field: {field}")
+
+        # Ensure defaults
+        config.setdefault("stop_loss_atr_multiple", 2.0)
+        config.setdefault("take_profit_atr_multiple", 4.0)
+
+        return config
+    except json.JSONDecodeError:
+        raise HTTPException(
+            422, "LLM returned invalid JSON. Try rephrasing your strategy.")
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"LLM error: {str(e)}")
+
+
 @app.get("/api/ohlcv/{symbol}")
 async def get_ohlcv(symbol: str, interval: str = "1h", limit: int = 200, endTime: int | None = None):
     if endTime:
