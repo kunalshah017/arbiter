@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Markdown from 'react-markdown'
-import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels"
+import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels"
 import { OHLCVChart } from '../components/OHLCVChart'
 import { BacktestChart } from '../components/BacktestChart'
 import { EquityCurve } from '../components/EquityCurve'
@@ -246,7 +246,7 @@ export function Dashboard() {
 
             {/* ── WORKSPACE ──────────────────────────────────────────────── */}
             <div className="flex-1 flex overflow-hidden">
-                <PanelGroup direction="horizontal">
+                <PanelGroup orientation="horizontal">
                     {/* ── LEFT PANE: STRATEGY & OPTIMIZER ── */}
                     <Panel defaultSize={20} minSize={15} maxSize={35} className="bg-white border-r-[2.5px] border-border flex flex-col overflow-y-auto hidden md:flex">
                         <div className="p-4 border-b-[2.5px] border-border bg-gray-50 flex items-center gap-2 shrink-0">
@@ -341,7 +341,7 @@ export function Dashboard() {
 
                     {/* ── CENTER PANE: CHARTS ── */}
                     <Panel defaultSize={55} minSize={40} className="flex flex-col min-w-0 bg-surface">
-                        <PanelGroup direction="vertical">
+                        <PanelGroup orientation="vertical">
                             {/* Top Chart Area */}
                             <Panel defaultSize={70} minSize={30} className="p-2 flex flex-col min-h-0">
                                 <div className="neo-card flex-1 flex flex-col overflow-hidden relative min-h-0">
