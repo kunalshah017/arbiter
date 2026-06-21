@@ -10,7 +10,7 @@ NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1/"
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 NVIDIA_GENERATOR_MODEL = "deepseek-ai/deepseek-v4-flash"
-GEMINI_GENERATOR_MODEL = "gemini-2.0-flash"
+GEMINI_GENERATOR_MODEL = "gemini-3.1-flash-lite"
 
 
 def _get_llm_client_and_model(nvidia_model: str, gemini_model: str) -> tuple[OpenAI | None, str]:
