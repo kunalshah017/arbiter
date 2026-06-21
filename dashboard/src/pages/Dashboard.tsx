@@ -246,7 +246,7 @@ export function Dashboard() {
 
             {/* ── WORKSPACE ──────────────────────────────────────────────── */}
             <div className="flex-1 flex overflow-hidden">
-                <PanelGroup orientation="horizontal">
+                <PanelGroup direction="horizontal">
                     {/* ── LEFT PANE: STRATEGY & OPTIMIZER ── */}
                     <Panel defaultSize={20} minSize={15} maxSize={35} className="bg-white border-r-[2.5px] border-border flex flex-col overflow-y-auto hidden md:flex">
                         <div className="p-4 border-b-[2.5px] border-border bg-gray-50 flex items-center gap-2 shrink-0">
@@ -337,13 +337,15 @@ export function Dashboard() {
                         </div>
                     </Panel>
 
-                    <PanelResizeHandle className="w-[3px] bg-border hover:bg-primary cursor-col-resize transition-colors hidden md:block" />
+                    <PanelResizeHandle className="w-4 relative flex items-center justify-center cursor-col-resize group z-10 hidden md:flex">
+                        <div className="w-[3px] h-full bg-border group-hover:bg-primary transition-colors" />
+                    </PanelResizeHandle>
 
                     {/* ── CENTER PANE: CHARTS ── */}
                     <Panel defaultSize={55} minSize={40} className="flex flex-col min-w-0 bg-surface">
-                        <PanelGroup orientation="vertical">
+                        <PanelGroup direction="vertical">
                             {/* Top Chart Area */}
-                            <Panel defaultSize={70} minSize={30} className="p-2 flex flex-col min-h-0">
+                            <Panel defaultSize={result?.equity_curve ? 70 : 100} minSize={30} className="p-2 flex flex-col min-h-0">
                                 <div className="neo-card flex-1 flex flex-col overflow-hidden relative min-h-0">
                                     {/* Overlay info */}
                                     <div className="absolute top-4 left-4 z-10 pointer-events-none">
@@ -363,7 +365,9 @@ export function Dashboard() {
                             {/* Bottom Equity Area */}
                             {result && result.equity_curve && (
                                 <>
-                                    <PanelResizeHandle className="h-[3px] bg-border hover:bg-primary cursor-row-resize transition-colors" />
+                                    <PanelResizeHandle className="h-4 relative flex items-center justify-center cursor-row-resize group z-10 hidden md:flex">
+                                        <div className="h-[3px] w-full bg-border group-hover:bg-primary transition-colors" />
+                                    </PanelResizeHandle>
                                     <Panel defaultSize={30} minSize={15} className="p-2 bg-white flex flex-col border-t-[2.5px] border-border overflow-hidden">
                                         <h3 className="text-[10px] font-bold uppercase opacity-60 ml-2 mb-1 shrink-0">Portfolio Equity</h3>
                                         <div className="flex-1 neo-card overflow-hidden min-h-0 relative">
@@ -375,7 +379,9 @@ export function Dashboard() {
                         </PanelGroup>
                     </Panel>
 
-                    <PanelResizeHandle className="w-[3px] bg-border hover:bg-primary cursor-col-resize transition-colors hidden lg:block" />
+                    <PanelResizeHandle className="w-4 relative flex items-center justify-center cursor-col-resize group z-10 hidden lg:flex">
+                        <div className="w-[3px] h-full bg-border group-hover:bg-primary transition-colors" />
+                    </PanelResizeHandle>
 
                     {/* ── RIGHT PANE: METRICS & TRADES ── */}
                     <Panel defaultSize={25} minSize={20} maxSize={50} className="bg-white border-l-[2.5px] border-border flex flex-col overflow-hidden hidden lg:flex">
