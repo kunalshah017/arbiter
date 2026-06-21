@@ -1,29 +1,34 @@
-# Arbiter — Backtest-Validated Autonomous Crypto Trader
+# Arbiter — AI Strategy Skill with Backtest Validation
 
-> BNB Hack: AI Trading Agent Edition | Track 1: Autonomous Trading Agents
+> **BNB Hack: AI Trading Agent Edition | Track 2: Strategy Skills**
 
-An AI trading agent that validates every trade decision against a Rust-powered backtest engine before execution — bringing institutional quant discipline to on-chain autonomous trading on BSC.
+A CMC Strategy Skill that generates regime-aware crypto trading strategies through a closed-loop optimization system — LLM proposes, Rust engine validates, Advisor LLM iterates — producing backtestable strategy specs with proven edge.
 
 ## How It Works
 
 ```
-Market Data (Binance) → AI classifies regime → Selects strategy →
-Rust engine validates (<50ms) → Only executes if positive expectancy →
-TWAK signs & swaps on BSC
+CMC Agent Hub → LLM classifies regime → Generator LLM proposes strategy →
+Rust engine backtests in <50ms → Pass? Output spec. Fail? Advisor iterates.
 ```
 
-**The agent never trades on belief — it trades on evidence.**
+1. **Regime Detection**: CMC MCP tools (global metrics, derivatives, fear & greed) feed an LLM that classifies the market into 5 regimes
+2. **Strategy Generation**: A generator LLM produces entry/exit rules tuned to the detected regime
+3. **Rust Validation**: Every strategy is backtested against 30 days of real OHLCV data in <50ms
+4. **Advisor Loop**: Failed strategies get diagnosed by an advisor LLM that suggests improvements — loop repeats until pass or max iterations
+
+**The LLM doesn't guess — it iterates with evidence.**
 
 ## Architecture
 
 | Layer             | Technology                                                |
 | ----------------- | --------------------------------------------------------- |
 | Orchestrator      | Python 3.11+ / asyncio                                    |
-| Backtest Engine   | Rust (PyO3) — 20 technical indicators, <50ms per run      |
-| Market Data       | Binance public API (OHLCV) + CMC MCP (regime signals)     |
-| Execution         | Trust Wallet Agent Kit (self-custody, autonomous signing) |
-| On-chain Identity | BNB AI Agent SDK (ERC-8004)                               |
-| Chain             | BNB Smart Chain (BSC)                                     |
+| Backtest Engine   | Rust (PyO3) — 22 technical indicators, <50ms per run      |
+| Market Data       | Binance public API (OHLCV)                                |
+| Regime Signals    | CMC Agent Hub (MCP) — global metrics, derivatives, TA     |
+| LLM Agents        | GPT-4o-mini (generator + regime classifier + advisor)     |
+| Dashboard         | Vite + React + TradingView Lightweight Charts             |
+| API Server        | FastAPI + WebSocket                                       |
 
 ## Setup
 
@@ -31,7 +36,7 @@ TWAK signs & swaps on BSC
 
 - Python 3.11+
 - Rust toolchain (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
-- TWAK CLI (`curl -fsSL https://agent-kit.trustwallet.com/install.sh | bash`)
+- Node.js 18+ (for dashboard)
 
 ### Install
 
@@ -47,78 +52,136 @@ pip install -e .
 
 ```bash
 cp .env.example .env
-# Edit .env with your API keys and wallet credentials
+# Add: OPENAI_API_KEY, CMC_API_KEY
 ```
 
-### Register Agent
+### Dashboard
 
 ```bash
-python scripts/register.py
+cd dashboard && npm install && npm run dev
 ```
 
-### Run
+## How to Run
+
+### Strategy Optimization Loop (main feature)
 
 ```bash
 python -m agent.main
 ```
 
-### Manual Backtest (test specific token)
+This runs the full optimization loop: regime detection → strategy generation → backtest validation → advisory iteration.
+
+### Manual Backtest (test specific token + regime)
 
 ```bash
 python scripts/manual_backtest.py BNB trending_up
 python scripts/manual_backtest.py ETH mean_reverting
+python scripts/manual_backtest.py SOL high_volatility
 ```
 
-### Docker (Production)
+### API Server (for dashboard)
+
+```bash
+uvicorn server.api:app --reload --port 8000
+```
+
+### Dashboard UI
+
+```bash
+cd dashboard && npm run dev
+# Open http://localhost:5173
+```
+
+### Docker
 
 ```bash
 docker compose up -d
 ```
 
-## Decision Gate
+## Decision Gate Thresholds
 
-Every trade must pass ALL thresholds:
+Every generated strategy must pass ALL criteria before acceptance:
 
-- Expected return > 0.5%
-- Max drawdown < -15%
-- Win rate > 35%
-- Minimum 5 trades in backtest
-- Profit factor > 1.2
+| Metric           | Threshold    | Purpose                        |
+| ---------------- | ------------ | ------------------------------ |
+| Expected return  | > 0.5%       | Positive expectancy required   |
+| Max drawdown     | < -15%       | Risk-controlled                |
+| Win rate         | > 35%        | Not random noise               |
+| Minimum trades   | ≥ 5          | Statistical significance       |
+| Profit factor    | > 1.2        | Reward exceeds risk            |
 
-## Risk Management
+Strategies that fail are sent to the Advisor LLM for diagnosis and improvement, not discarded.
 
-- Max 5% per position
-- Max 60% total exposure
-- Daily drawdown halt at -8%
-- Competition cap at -25% (buffer vs -30% DQ)
-- ATR-based stop-loss and take-profit on every trade
+## CMC Agent Hub Usage
 
-## Tech Stack Details
+Arbiter uses CMC Agent Hub via MCP protocol for regime classification:
 
-### Rust Backtest Engine
+| MCP Tool                   | What We Extract                          |
+| -------------------------- | ---------------------------------------- |
+| `get_global_metrics`       | Market cap dominance, total volume       |
+| `get_fear_greed_index`     | Sentiment extremes (greed/fear)          |
+| `get_derivatives_data`     | Funding rates, open interest positioning |
+| `get_technical_indicators` | RSI, MACD on major assets                |
+| `get_trending_tokens`      | Momentum candidates                      |
 
-- 20 technical indicators via `nautilus-indicators` crate
-- Condition evaluation: `>`, `<`, `>=`, `<=`, `crossover`, `crossunder`
-- State machine: Idle → Long (spot only)
-- ATR-based SL/TP with configurable multiples
-- Full metrics: Sharpe, profit factor, win rate, drawdown, expectancy
+These signals determine which of 5 regimes the market is in, which determines what TYPE of strategy the generator LLM produces.
 
-### Market Regime Classification
+## Market Regimes
 
-- GPT-4o-mini classifies into 5 regimes from CMC global metrics
-- Each regime maps to a pre-tested strategy template
-- Strategies: Momentum, Mean Reversion, Volatility Breakout, Defensive, Ultra Conservative
+| Regime           | Strategy Approach                        |
+| ---------------- | ---------------------------------------- |
+| Trending Up      | Momentum breakouts, trailing stops       |
+| Trending Down    | Short momentum, defensive positioning    |
+| Mean Reverting   | Fade at BBand extremes, RSI reversals    |
+| High Volatility  | Wide stops, volatility capture           |
+| Choppy           | Conservative / skip                      |
 
-### Token Scanning
+## Tech Stack
 
-- Scans 40+ BEP-20 tokens on Binance
-- Regime-aware momentum scoring
-- Filters by liquidity (min $50K 24h volume)
+- **Python 3.11+** — orchestration, LLM calls, data pipeline
+- **Rust (PyO3 + maturin)** — backtest engine, 22 indicators via nautilus-indicators
+- **CMC Agent Hub (MCP)** — regime classification data
+- **Binance API** — OHLCV candlestick data
+- **GPT-4o-mini** — strategy generation, regime classification, advisory
+- **FastAPI + WebSocket** — live backtest API
+- **Vite + React + lightweight-charts** — dashboard visualization
+- **BNB AI Agent SDK** — ERC-8004 on-chain identity
 
-## Competition Wallet
+## Strategy Results Example
 
-- BSC Address: [filled after registration]
-- Agent ID (ERC-8004): [filled after registration]
+```
+Token:    BNBUSDT
+Regime:   trending_up
+Strategy: Momentum Breakout v3 (iteration 3 of 5)
+
+Entry: EMA(9) > EMA(21) AND RSI > 55 AND MACD histogram > 0
+Exit:  EMA(9) < EMA(21) OR trailing stop at 2×ATR
+
+Backtest (30d):
+  Return:        +6.2%
+  Max Drawdown:  -4.8%
+  Win Rate:      58%
+  Trades:        14
+  Sharpe:        1.84
+  Profit Factor: 2.1
+
+Gate: ✅ PASS (all thresholds met)
+```
+
+## Project Structure
+
+```
+agent/           — Orchestrator, regime classifier, strategy generator, advisor, gate
+engine/          — Rust backtest engine (PyO3 bindings)
+integrations/    — Binance, CMC MCP, BNB SDK
+data/            — Database models, OHLCV transforms
+risk/            — Position sizing, guardrails, portfolio tracking
+server/          — FastAPI endpoints + WebSocket
+dashboard/       — React + Vite frontend
+config/          — Strategy templates, token lists, settings
+scripts/         — Manual backtest, registration
+tests/           — 38 tests (all passing)
+```
 
 ## License
 

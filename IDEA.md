@@ -1,45 +1,42 @@
-# Arbiter — Backtest-Validated Autonomous Crypto Trader
+# Arbiter — CMC Strategy Skill with Closed-Loop Rust Validation
 
-## BNB Hack: AI Trading Agent Edition | Track 1: Autonomous Trading Agents
+## BNB Hack: AI Trading Agent Edition | Track 2: Strategy Skills ($6,000)
 
 ---
 
 ## One-Liner
 
-An AI trading agent that validates every trade decision against a Rust-powered backtest engine before execution — bringing institutional quant discipline to on-chain autonomous trading on BSC.
+A CMC Strategy Skill that uses multi-agent LLM optimization with Rust backtest validation to produce regime-aware trading strategies with proven edge — not guesses.
 
 ---
 
 ## The Problem
 
-Every AI trading agent in crypto today works the same way:
+LLM-generated trading strategies are **unvalidated opinions**.
+
+Every "AI strategy generator" today does this:
 
 ```
-LLM reads market data → forms opinion → trades on gut feeling
+Prompt LLM → Get rules → Hope it works
 ```
 
-This is how retail traders lose money. Institutional quant firms do the opposite:
+There's no feedback loop. No quantitative validation. No iteration based on real market data. The LLM has no idea if its output has positive expectancy or is pure noise.
 
-```
-Classify regime → propose strategy → validate against historical data → only execute if positive expectancy confirmed
-```
-
-No one has brought this discipline to an AI agent on-chain. Until now.
+This is like writing code without ever running it.
 
 ---
 
 ## The Solution: Arbiter
 
-An autonomous trading agent with a **real-time backtest validation loop**. The agent:
+A **closed-loop strategy optimization system** where:
 
-1. **Scans 149 eligible tokens** every cycle using CMC Agent Hub
-2. **Classifies market regime** (trending / mean-reverting / volatile / choppy)
-3. **Selects optimal strategy** for the detected regime
-4. **Validates the strategy** against recent data using a Rust backtest engine (<100ms)
-5. **Only executes** if the backtest shows positive expectancy + acceptable drawdown
-6. **Signs and processes transactions autonomously** via Trust Wallet Agent Kit
+1. **CMC Agent Hub** provides regime classification data (global metrics, derivatives, technical analysis)
+2. **Generator LLM** proposes strategy rules tuned to the detected regime
+3. **Rust Backtest Engine** validates every strategy against 30 days of real OHLCV data in <50ms
+4. **Advisor LLM** reviews results, identifies weaknesses, suggests improvements
+5. **Loop repeats** until the strategy passes quantitative thresholds or exhausts iterations
 
-The key insight: **the agent never trades on belief — it trades on evidence.**
+The key insight: **the LLM doesn't guess — it iterates with evidence.**
 
 ---
 
@@ -47,514 +44,158 @@ The key insight: **the agent never trades on belief — it trades on evidence.**
 
 ```mermaid
 flowchart TD
-    subgraph ARBITER
-        CMC["CMC Agent Hub\n(MCP)\n\n• Prices\n• Indicators\n• Sentiment\n• Fear & Greed\n• Funding\n• On-chain\n• x402 pay"]
-        AI["AI Strategy Brain\n(LLM)\n\n• Regime detect\n• Token ranking\n• Strategy pick\n• Param tuning"]
-        RUST["Rust Backtest\nValidator\n\n• 22 indicators\n• Full bar loop\n• Risk metrics\n• <100ms per run"]
-        GATE["Decision Gate\n\nPass criteria:\n• Expectancy > 0\n• MaxDD < 15%\n• Win rate > 40%\n• Min 10 trades"]
-        TWAK["TWAK Execution\n\n• Sign tx\n• Swap DEX\n• Guardrails"]
-        BSC["BSC Chain\n(BEP-20)"]
-        SDK["BNB AI Agent SDK — ERC-8004 On-chain Identity + Registration"]
+    subgraph ARBITER["Arbiter — Strategy Skill"]
+        CMC["CMC Agent Hub\n(MCP)\n\n• Global Metrics\n• Fear & Greed\n• Derivatives Data\n• Technical Analysis\n• On-chain Signals"]
+        REGIME["Regime Classifier\n(LLM)\n\n• 5 market regimes\n• Data-driven\n• Updates per cycle"]
+        GEN["Strategy Generator\n(LLM)\n\n• Entry/exit rules\n• Indicator selection\n• Parameter tuning"]
+        RUST["Rust Backtest Engine\n(PyO3)\n\n• 22 indicators\n• Full bar simulation\n• <50ms per run\n• Risk metrics"]
+        GATE["Decision Gate\n\nPass criteria:\n• Expectancy > 0\n• MaxDD < 15%\n• Win rate > 35%\n• Min 10 trades\n• Profit factor > 1.2"]
+        ADV["Advisor LLM\n\n• Diagnose failures\n• Suggest tweaks\n• Parameter shifts\n• Strategy pivots"]
+        OUT["Strategy Spec\n(Backtested Output)\n\n• Rules + params\n• Backtest proof\n• Risk profile"]
 
-        CMC --> AI --> RUST --> GATE
-        GATE -->|PASS| TWAK
-        GATE -->|FAIL| REJECT["Reject / Retry"]
-        TWAK --> BSC
+        CMC --> REGIME --> GEN
+        GEN --> RUST --> GATE
+        GATE -->|PASS| OUT
+        GATE -->|FAIL| ADV
+        ADV -->|iterate| GEN
     end
 
+    BINANCE["Binance API\n(OHLCV Data)"] --> RUST
+
     style CMC fill:#1a1a2e,stroke:#16213e,color:#fff
-    style AI fill:#1a1a2e,stroke:#16213e,color:#fff
-    style RUST fill:#1a1a2e,stroke:#16213e,color:#fff
+    style REGIME fill:#1a1a2e,stroke:#16213e,color:#fff
+    style GEN fill:#1a1a2e,stroke:#16213e,color:#fff
+    style RUST fill:#0f3460,stroke:#16213e,color:#fff
     style GATE fill:#0f3460,stroke:#16213e,color:#fff
-    style TWAK fill:#533483,stroke:#16213e,color:#fff
-    style BSC fill:#e94560,stroke:#16213e,color:#fff
-    style SDK fill:#0f3460,stroke:#16213e,color:#fff
-    style REJECT fill:#333,stroke:#666,color:#aaa
+    style ADV fill:#533483,stroke:#16213e,color:#fff
+    style OUT fill:#2e7d32,stroke:#1b5e20,color:#fff
+    style BINANCE fill:#f0b90b,stroke:#c99a00,color:#000
 ```
 
 ---
 
-## Core Innovation: The Validation Loop
+## The Optimization Loop (NVIDIA Signal Discovery Inspired)
 
-### What Every Other Agent Does:
-
-```mermaid
-flowchart LR
-    A["Market Data"] --> B["LLM 'thinks'"] --> C["Trade"]
-```
-
-### What Arbiter Does:
+Inspired by NVIDIA's approach to automated signal discovery in quantitative finance, Arbiter treats strategy generation as an **optimization problem with a measurable objective function**.
 
 ```mermaid
-flowchart LR
-    A["Market Data"] --> B["LLM proposes"] --> C["Rust Engine validates\nagainst 30 days of data"]
-    C -->|Positive expectancy| D["Execute"]
-    C -->|Negative expectancy| E["Reject / try different\nparams or skip"]
+sequenceDiagram
+    participant CMC as CMC Agent Hub
+    participant R as Regime Classifier
+    participant G as Generator LLM
+    participant E as Rust Engine
+    participant A as Advisor LLM
 
-    style D fill:#2e7d32,stroke:#1b5e20,color:#fff
-    style E fill:#c62828,stroke:#b71c1c,color:#fff
+    CMC->>R: Global metrics, derivatives, fear & greed
+    R->>G: Regime = "trending_up"
+    G->>E: Strategy spec (entry/exit rules + params)
+    E->>E: Run backtest on 30d OHLCV (<50ms)
+    E-->>G: Results: -2.3% return, 28% win rate
+    Note over G,A: FAIL — does not pass gate
+    G->>A: Failed results + strategy spec
+    A->>G: "RSI threshold too aggressive, widen BBand period, add volume filter"
+    G->>E: Revised strategy spec v2
+    E-->>G: Results: +4.7% return, 52% win rate, 8% maxDD
+    Note over G,A: PASS — strategy accepted
+    E->>E: Output validated strategy spec
 ```
 
-This is the **only agent in the competition with a quantitative validation gate**.
+### Why this works:
+
+- **Fast iteration**: Rust engine validates in <50ms, so 20 iterations take ~1 second
+- **Measurable feedback**: Not "does this look good?" but "does this make money on real data?"
+- **LLM as optimizer**: The Advisor sees what failed and why, making each iteration targeted
+- **No overfitting guard**: Minimum trade count requirement prevents curve-fitting
 
 ---
 
-## Multi-Token Rotation Edge
+## CMC Agent Hub Usage (MCP Tools)
 
-With 149 eligible tokens, most agents will trade 2-5 familiar assets. Arbiter systematically scans ALL 149 tokens and picks only the highest-conviction setups.
+Arbiter uses CMC Agent Hub via MCP for regime classification signals:
 
-### Rotation Logic:
+| MCP Tool                    | Purpose in Arbiter                                  |
+| --------------------------- | --------------------------------------------------- |
+| `get_global_metrics`        | Market cap dominance, total volume — macro regime   |
+| `get_fear_greed_index`      | Sentiment extreme detection                         |
+| `get_derivatives_data`      | Funding rates, open interest — positioning regime   |
+| `get_technical_indicators`  | RSI, MACD on major assets — technical regime        |
+| `get_trending_tokens`       | Momentum candidates for strategy application        |
+| `get_token_metadata`        | Token fundamentals for filtering                    |
 
-1. **Hourly scan**: Fetch latest OHLCV + indicators for all 149 tokens via CMC
-2. **Pre-filter**: Rank by momentum score, volume, volatility regime fit
-3. **Top 10 → Backtest**: Run strategy validation on top 10 candidates
-4. **Top 3-5 → Execute**: Only trade tokens where backtest passes the gate
-5. **Position management**: Rotate out of weakening setups, rotate into new signals
-
-**Structural advantage**: More opportunity flow = more chances to find edge.
+These signals feed the LLM regime classifier which determines WHICH type of strategy to generate.
 
 ---
 
 ## Strategy Toolkit (Regime-Adaptive)
 
-### Regime Classification (via CMC data):
+### Regime Classification (via CMC + LLM):
 
-| Regime              | Detection Signals                                            | Strategy Applied                                   |
-| ------------------- | ------------------------------------------------------------ | -------------------------------------------------- |
-| **TRENDING_UP**     | EMA alignment, ADX > 25, positive funding, bullish sentiment | Momentum breakouts, trailing stops                 |
-| **TRENDING_DOWN**   | EMA inversion, negative funding, Fear dominant               | Short momentum, tight risk, rotate to stables      |
-| **MEAN_REVERTING**  | Low ADX, price oscillating in BBands, neutral sentiment      | Fade at BBand extremes, RSI oversold/overbought    |
-| **HIGH_VOLATILITY** | ATR spike, VIX-equivalent high, Fear & Greed extreme         | Wider stops, smaller positions, volatility capture |
-| **CHOPPY**          | Low ATR, random walk behavior, mixed signals                 | Minimal trading, wait for regime clarity           |
+| Regime              | Detection Signals                                   | Strategy Type Generated                    |
+| ------------------- | --------------------------------------------------- | ------------------------------------------ |
+| **TRENDING_UP**     | EMA alignment, ADX > 25, positive funding, bullish  | Momentum breakouts, trailing stops         |
+| **TRENDING_DOWN**   | EMA inversion, negative funding, Fear dominant      | Short momentum, defensive positioning      |
+| **MEAN_REVERTING**  | Low ADX, BBand oscillation, neutral sentiment       | Fade at extremes, RSI reversals            |
+| **HIGH_VOLATILITY** | ATR spike, extreme Fear & Greed, OI changes         | Wide stops, volatility capture             |
+| **CHOPPY**          | Low ATR, mixed signals, no directional bias         | Conservative or skip (wait for clarity)    |
 
-### Indicators Available (from Rust engine):
+### Indicators Available (Rust Engine — 22 total):
 
-**Moving Averages**: SMA, EMA, DEMA, HMA, WMA, VWAP, RMA  
-**Momentum**: RSI, MACD, Aroon, CCI, ROC, Stochastic, Swings, Pressure  
-**Volatility**: ATR, Bollinger Bands, Keltner Channel, Donchian Channel  
-**Volume**: OBV  
+**Moving Averages**: SMA, EMA, DEMA, HMA, WMA, VWAP, RMA
+**Momentum**: RSI, MACD, Aroon, CCI, ROC, Stochastic, Swings, Pressure
+**Volatility**: ATR, Bollinger Bands, Keltner Channel, Donchian Channel
+**Volume**: OBV
 **Efficiency**: Efficiency Ratio, Linear Regression
 
-### Strategy Templates:
+---
 
-#### 1. Momentum Breakout (Trending Regime)
+## Tech Stack
 
-```
-Entry: EMA(9) > EMA(21) AND RSI > 55 AND MACD histogram positive AND price > Keltner upper
-Exit:  EMA(9) crosses below EMA(21) OR RSI < 45 OR trailing stop 2×ATR
-```
-
-#### 2. Mean Reversion (Ranging Regime)
-
-```
-Entry: Price touches lower BBand AND RSI < 30 AND Stochastic oversold
-Exit:  Price reaches BBand midline OR RSI > 65 OR stop at 1.5×ATR below entry
-```
-
-#### 3. Momentum Short (Bearish Regime)
-
-```
-Entry: EMA(9) < EMA(21) AND RSI < 45 AND MACD histogram negative AND price < Keltner lower
-Exit:  EMA(9) crosses above EMA(21) OR RSI > 55 OR trailing stop 2×ATR above
-```
-
-#### 4. Volatility Capture (High Vol Regime)
-
-```
-Entry: ATR > 2×ATR(20) AND Donchian breakout AND volume spike (OBV rising)
-Exit:  ATR normalizes OR Donchian opposite boundary OR 3×ATR trailing stop
-```
+| Component         | Technology                                             |
+| ----------------- | ------------------------------------------------------ |
+| Orchestrator      | Python 3.11+ / asyncio                                 |
+| Backtest Engine   | Rust (PyO3 + maturin) — 22 indicators, <50ms          |
+| Market Data       | Binance public API (OHLCV)                             |
+| Regime Signals    | CMC Agent Hub (MCP) — global metrics, derivatives, TA  |
+| LLM (Generation)  | GPT-4o-mini (strategy generation + regime classify)    |
+| LLM (Advisory)    | GPT-4o-mini (backtest analysis + improvement advice)   |
+| Dashboard         | Vite + React + TradingView Lightweight Charts          |
+| API Server        | FastAPI + WebSocket (live backtest streaming)           |
 
 ---
 
-## Risk Management Framework
+## What Makes Arbiter Unique
 
-### Portfolio-Level Guardrails (TWAK enforced):
+1. **Rust Validation Engine**: Not just LLM opinions — every strategy is quantitatively proven against real market data before acceptance. <50ms per backtest enables rapid iteration.
 
-| Rule                     | Value                             | Purpose                |
-| ------------------------ | --------------------------------- | ---------------------- |
-| Max position size        | 5% of portfolio per token         | No single-token blowup |
-| Max total exposure       | 60% of portfolio                  | Always keep dry powder |
-| Daily drawdown kill      | -8% daily loss → halt for 24h     | Survive bad days       |
-| Competition drawdown cap | -25% total (buffer vs 30% DQ)     | Never get disqualified |
-| Min trades per day       | 1 (competition requirement)       | Stay eligible          |
-| Token allowlist          | Only competition-approved BEP-20s | Compliance             |
-| Slippage protection      | Max 1% slippage per swap          | Avoid MEV              |
+2. **Multi-Agent Feedback Loop**: Generator proposes, Engine validates, Advisor diagnoses failures and guides improvements. This is optimization, not generation.
 
-### Per-Trade Risk (Backtest-Validated):
+3. **Regime-Aware Generation**: CMC Agent Hub data classifies the current market regime, so strategies are always contextually appropriate — not generic.
 
-| Rule          | Value                                     |
-| ------------- | ----------------------------------------- |
-| Stop-loss     | Dynamic, 1.5-3× ATR based on regime       |
-| Take-profit   | 2:1 minimum reward:risk ratio             |
-| Max hold time | 24h for intraday setups, 72h for swing    |
-| Re-entry      | Only after new backtest validation passes |
+4. **Backtestable Output**: The deliverable isn't "a prompt that generates rules" — it's a validated strategy spec with backtest proof (Sharpe, drawdown, win rate, trade count).
 
-### Validation Gate Thresholds:
-
-A strategy only gets executed if the 30-day backtest shows:
-
-- **Expected return > 0%** (positive expectancy)
-- **Max drawdown < 15%** (half of kill threshold)
-- **Win rate > 35%** (not purely random)
-- **Minimum 10 trades** in backtest period (statistical significance)
-- **Profit factor > 1.2** (edge is real, not noise)
+5. **Speed**: Rust engine enables 20+ strategy iterations per second. The LLM can explore the strategy space efficiently with instant feedback.
 
 ---
 
-## Technology Stack
-
-| Component         | Technology                            | Role                                              |
-| ----------------- | ------------------------------------- | ------------------------------------------------- |
-| Backtest Engine   | **Rust** (adapted from Astryx engine) | Strategy validation, <100ms per run               |
-| AI Brain          | **Python + LLM** (GPT-4/Claude)       | Regime classification, strategy selection         |
-| Market Data       | **CMC Agent Hub** (MCP + x402)        | Real-time prices, indicators, sentiment, on-chain |
-| Execution         | **Trust Wallet Agent Kit** (TWAK)     | Self-custody signing, autonomous swap execution   |
-| On-chain Identity | **BNB AI Agent SDK** (ERC-8004)       | Agent registration, discoverability               |
-| Chain             | **BSC (BNB Chain)**                   | Fast blocks, cheap gas, competition venue         |
-| Orchestration     | **Python (FastAPI/asyncio)**          | Agent loop, scheduling, state management          |
-| Data Storage      | **SQLite / in-memory**                | Recent OHLCV cache, trade log, state              |
-
----
-
-## Adaptation: Indian F&O Engine → Crypto Spot
-
-### What Gets Stripped (not needed for crypto spot):
-
-- Multi-leg options logic (straddle/strangle/iron condor)
-- Strike selection & expiry management
-- Lot size/margin calculations
-- IST timezone (crypto is 24/7 UTC)
-- ClickHouse data provider (replaced by CMC)
-
-### What Carries Over Directly:
-
-- **All 22 technical indicators** (RSI, MACD, BBands, ATR, etc.)
-- **Condition evaluator** (composable entry/exit rule groups)
-- **Risk manager** (SL/TP calculation, drawdown tracking)
-- **Bar processor state machine** (Idle → Entry → Positioned → Exit)
-- **Performance metrics** (P&L, win rate, drawdown, profit factor)
-- **Re-entry logic** (momentum-based re-entry after exits)
-- **Time window management** (adapted for 24/7 with session biases)
-
-### What Gets Added:
-
-- CMC data adapter (fetch OHLCV via MCP, format for Rust engine)
-- Multi-token scanner (parallel validation across 149 tokens)
-- Regime classifier (LLM-based, CMC data inputs)
-- TWAK execution bridge (translate signals → signed swaps)
-- Competition-aware logic (min trades, token allowlist, registration)
-
-**This is a simplification** — crypto spot is fundamentally easier than multi-leg Indian F&O.
-
----
-
-## Agent Loop (Runtime Behavior)
-
-```python
-# Pseudocode for the main agent loop
-
-every 1_hour:
-    # 1. Gather market context
-    regime = classify_regime(cmc.fear_greed(), cmc.funding_rates(), cmc.btc_dominance())
-
-    # 2. Scan all tokens
-    token_scores = []
-    for token in ELIGIBLE_149_TOKENS:
-        data = cmc.get_ohlcv(token, timeframe="5m", days=30)
-        score = quick_rank(data, regime)  # momentum, volume, vol-regime fit
-        token_scores.append((token, score, data))
-
-    # 3. Select top candidates
-    top_10 = sorted(token_scores, key=score, reverse=True)[:10]
-
-    # 4. Validate each with backtest
-    validated = []
-    for token, score, data in top_10:
-        strategy = select_strategy(regime)
-        result = rust_engine.backtest(strategy_params, data)  # <100ms
-
-        if passes_gate(result):  # expectancy > 0, DD < 15%, etc.
-            validated.append((token, strategy, result))
-
-    # 5. Execute top setups (max 5 concurrent positions)
-    for token, strategy, result in validated[:5]:
-        if not already_positioned(token) and within_risk_budget():
-            twak.swap(
-                from_token="USDT",
-                to_token=token,
-                amount=calculate_position_size(result.expected_return, result.max_dd),
-                slippage_max=0.01
-            )
-            log_entry(token, strategy, entry_price)
-
-every 5_minutes:
-    # Monitor open positions
-    for position in open_positions:
-        current_price = cmc.get_price(position.token)
-
-        if hit_stop_loss(position, current_price):
-            twak.swap(position.token, "USDT", position.quantity)
-            log_exit(position, "SL")
-
-        elif hit_take_profit(position, current_price):
-            twak.swap(position.token, "USDT", position.quantity)
-            log_exit(position, "TP")
-
-        elif hit_trailing_stop(position, current_price):
-            twak.swap(position.token, "USDT", position.quantity)
-            log_exit(position, "TRAIL")
-
-every 24_hours:
-    # Portfolio rebalance & health check
-    review_performance()
-    adjust_risk_params_if_drawdown_approaching()
-    ensure_min_1_trade_per_day()
-```
-
----
-
-## Special Prize Strategy
-
-### Best Use of Trust Wallet Agent Kit ($2K)
-
-| Criterion                              | Our Implementation                                                                                        | Points |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------ |
-| TWAK integration depth (30)            | SOLE execution layer. Uses: signing, autonomous mode, portfolio reads, price feeds, x402 payments, alerts | 25-30  |
-| Self-custody integrity (25)            | Fully self-custodial. Agent wallet with local signing. Keys never leave device. No co-signing.            | 20-25  |
-| Autonomous execution & guardrails (20) | Trades hands-off within rules: drawdown caps, position limits, token allowlist, daily loss halt           | 16-20  |
-| Native x402 usage (10)                 | Pays CMC per-call via x402 for data. Real usage in trade loop, not just mentioned.                        | 8-10   |
-| Originality (10)                       | Backtest-validated autonomous trading is genuinely novel for self-custody agents                          | 8-10   |
-| Demo (5)                               | Show full loop: data → validate → sign → on-chain proof                                                   | 4-5    |
-
-**Estimated: 81-100/100** → Strong contender for this prize.
+## Special Prize Eligibility
 
 ### Best Use of Agent Hub ($2K)
 
-- Uses CMC MCP for ALL market data (no other data source)
-- Calls multiple CMC Skills: technical analysis, sentiment, Fear & Greed, funding rates
-- x402 pay-per-call for live data in the trade loop
-- Agent Hub is the INPUT to the validation engine — without it, the agent is blind
+- Uses CMC MCP tools for regime classification (global metrics, derivatives, technical analysis)
+- Regime detection is the core differentiator that makes generated strategies contextual
+- Without CMC data, the Skill would just be blind strategy generation
 
 ### Best Use of BNB AI Agent SDK ($2K)
 
-- ERC-8004 identity registration on BSC
-- Agent metadata includes strategy description and performance stats
-- Could extend: offer backtest validation as an ERC-8183 service (other agents pay to validate their strategies)
+- ERC-8004 on-chain identity registration via `integrations/bnb_sdk.py`
+- Agent registered on BSC with verifiable identity
+- Strategy outputs tagged with agent identity for provenance
 
 ---
 
-## Competition Week Strategy (June 22-28)
+## Deliverables (Track 2 Requirements)
 
-### Day 1-2: Conservative
-
-- Smaller positions (3% max)
-- Higher backtest thresholds (expectancy > 2%, DD < 10%)
-- Get a feel for live execution, slippage, gas costs
-- Ensure min 1 trade/day met
-
-### Day 3-5: Standard
-
-- Normal position sizing (5% max)
-- Standard thresholds
-- Full rotation scanning active
-- Capture the bulk of returns here
-
-### Day 6-7: Protect Gains / Push
-
-- If ahead: tighten stops, reduce exposure, protect lead
-- If behind: slightly looser thresholds (expectancy > 0%, DD < 18%)
-- Never breach 25% drawdown — survival > heroism
-
-### Key Competition Constraints:
-
-- ✅ At least 1 trade per day (7 total minimum)
-- ✅ Only trade from the 149 approved BEP-20 tokens
-- ✅ Maintain non-zero balance at all times (never go to dust)
-- ✅ Stay under 30% max drawdown (we use 25% internal cap)
-- ✅ Simulated transaction costs apply — factor into backtest
-
----
-
-## Why This Wins
-
-| vs. Other Teams       | Our Edge                                                |
-| --------------------- | ------------------------------------------------------- |
-| "LLM + vibes" traders | We validate with data. They guess.                      |
-| Single-token bots     | We scan 149 tokens. They miss opportunities.            |
-| Pure momentum chasers | We adapt to regimes. They blow up in chop.              |
-| Over-leveraged agents | We have a 25% DD cap. They get DQ'd at 30%.             |
-| No risk management    | Every trade has predefined SL/TP. No open-ended losses. |
-| Slow execution        | Rust engine validates in <100ms. No analysis paralysis. |
-
----
-
-## Implementation Timeline (10 days to June 21)
-
-| Day | Focus                                     | Deliverable                                                                   |
-| --- | ----------------------------------------- | ----------------------------------------------------------------------------- |
-| 1   | Project scaffold + Rust engine adaptation | Strip F&O logic, keep indicators/risk/state machine, add crypto OHLCV input   |
-| 2   | CMC MCP integration                       | Data fetcher for prices, OHLCV, indicators, sentiment. Cache layer.           |
-| 3   | Regime classifier + strategy templates    | LLM prompt engineering, 4 regime-strategy mappings, parameter ranges          |
-| 4   | Backtest validator pipeline               | Wire CMC data → Rust engine → validation result. Decision gate logic.         |
-| 5   | TWAK integration                          | Autonomous wallet setup, swap execution, guardrails, portfolio monitoring     |
-| 6   | Multi-token scanner                       | Parallel scan of 149 tokens, ranking, top-N selection                         |
-| 7   | Agent orchestration loop                  | Main loop: scan → classify → validate → execute → monitor. State persistence. |
-| 8   | BNB SDK + competition registration        | ERC-8004 identity, on-chain registration, competition contract                |
-| 9   | End-to-end testing on BSC testnet         | Full loop with testnet tokens. Fix edge cases. Parameter tuning.              |
-| 10  | Demo, documentation, submission           | Video walkthrough, GitHub README, DoraHacks submission                        |
-
----
-
-## Repository Structure (Planned)
-
-```
-bnb-hack/
-├── agent/                    # Main agent orchestration
-│   ├── main.py              # Entry point, agent loop
-│   ├── regime_classifier.py # LLM-based regime detection
-│   ├── token_scanner.py     # Multi-token opportunity scanner
-│   ├── strategy_selector.py # Regime → strategy mapping
-│   └── decision_gate.py     # Backtest result → trade/no-trade
-│
-├── engine/                   # Rust backtest engine (adapted)
-│   ├── Cargo.toml
-│   └── src/
-│       ├── lib.rs           # Python bindings
-│       ├── indicators/      # 22 technical indicators
-│       ├── strategy/        # Bar processor, entry/exit
-│       ├── risk/            # SL/TP, drawdown, position sizing
-│       └── runner.rs        # Backtest execution
-│
-├── integrations/             # External service integrations
-│   ├── cmc_client.py       # CMC Agent Hub MCP client
-│   ├── twak_executor.py    # Trust Wallet Agent Kit bridge
-│   ├── bnb_sdk.py          # BNB AI Agent SDK (ERC-8004)
-│   └── x402_payer.py       # x402 payment handling
-│
-├── data/                     # Data management
-│   ├── cache.py            # OHLCV cache (SQLite)
-│   ├── models.py           # Data models
-│   └── transforms.py       # CMC data → Rust engine format
-│
-├── risk/                     # Portfolio risk management
-│   ├── portfolio.py        # Position tracking
-│   ├── guardrails.py       # Drawdown caps, daily limits
-│   └── competition.py      # Competition-specific rules
-│
-├── config/                   # Configuration
-│   ├── settings.py         # Environment, API keys
-│   ├── strategies.yaml     # Strategy templates
-│   └── tokens.yaml         # 149 eligible token list
-│
-├── tests/                    # Test suite
-├── scripts/                  # Utility scripts
-│   ├── register_agent.py   # ERC-8004 registration
-│   └── register_competition.py
-│
-├── pyproject.toml
-├── Dockerfile
-└── README.md
-```
-
----
-
-## Demo Script (for submission video)
-
-1. **Show the agent starting up** — connects to CMC MCP, initializes TWAK wallet, registers on-chain
-2. **Live regime classification** — "Current market: TRENDING_UP, confidence 78%"
-3. **Token scan running** — "Scanned 149 tokens, top candidates: BNB, ETH, CAKE, INJ, PENDLE"
-4. **Backtest validation** — "Validating momentum strategy on CAKE... Expected return: +4.2%, Max DD: -8.1%, Win rate: 52% — PASS"
-5. **Execution** — "Swapping 500 USDT → CAKE via TWAK... TX confirmed: 0xabc..."
-6. **Position monitoring** — "CAKE position: +1.8%, trailing stop at -2×ATR"
-7. **Show BSC explorer** — On-chain proof of trades from agent wallet
-
----
-
-## Summary
-
-**Arbiter** is not another "ChatGPT with a wallet." It's a systematic, quantitatively-validated autonomous trader that brings institutional discipline to DeFi. The Rust backtest engine — battle-tested on Indian F&O markets — gives us a technical moat no other hackathon team can replicate in 3 weeks.
-
-**Target prizes: 1st place Track 1 ($10K) + Best TWAK ($2K) + Best Agent Hub ($2K) = $14K potential.**
-
----
-
-## Validation & Shortcomings (Pre-Build Audit)
-
-### Critical Issues
-
-#### 1. Shorting is NOT Possible on BSC Spot
-
-The IDEA mentions "Momentum Short (Bearish Regime)" and "TRENDING_DOWN → Short momentum." **You cannot short BEP-20 spot tokens via TWAK swaps.** TWAK does buy/sell swaps only.
-
-**Fix:** Bearish regime strategy must be "rotate to stables / reduce exposure / exit longs" — not "go short." Remove all short entry/exit logic from strategy templates or integrate a BSC perps protocol (out of scope for 10 days).
-
-#### 2. CMC OHLCV Data Granularity — Biggest Unknown
-
-The plan assumes 5-minute candles for 149 tokens over 30 days from CMC MCP. CMC's standard API typically provides daily/hourly granularity. 5m candle data for small-cap BSC tokens may not exist.
-
-**Impact:** With hourly candles (720 bars over 30 days), many strategies won't trigger the "min 10 trades" backtest threshold. With daily candles, it's nearly impossible.
-
-**Fix:** Test CMC MCP data availability for a few tokens on Day 1. Fallback plan: use 1h candles, lower the min-trades threshold to 5, or supplement with PancakeSwap subgraph data.
-
-#### 3. Rust Engine Adaptation is Deeper Than "Strip F&O"
-
-The current engine has F&O concepts deeply embedded:
-
-- `RunnerConfig` requires `strike_step`, `lot_size`, `options_bar_types`, `signal_bar_type` vs `execution_bar_type`
-- `BarClassifier` distinguishes signal/execution/options bars
-- `DeferredExit` uses multi-leg triggered-leg logic
-- `StrikeSelector`, `AtmMethod`, `ReentryStrategy` (RE_ASAP, LAZY_LEG) are all options-specific
-- `ProcessorConfig` has `short_trade_action`/`long_trade_action` as `TradeActionConfig` (multi-leg)
-
-**Fix:** Don't try to strip the existing engine. Build a lightweight `CryptoSpotRunner` that reuses `IndicatorRegistry` + `ConditionEvaluator` + basic risk math, but has its own simple single-position state machine (no legs, no strikes, no deferred exits). This is cleaner and faster than surgery on the F&O code.
-
-### High-Risk Issues
-
-#### 4. Rate Limiting on 149-Token Hourly Scan
-
-149 tokens × (OHLCV + indicators + sentiment) = 400+ API calls per hour via CMC. x402 pay-per-call adds latency + cost. Rate limiting could throttle the agent during competition week.
-
-**Fix:** Batch endpoints if CMC supports them. Cache aggressively (indicators don't change per-second). Pre-filter by volume/market-cap (quantitative, no API call needed) to reduce the 149 → top 20-30 before hitting detailed endpoints.
-
-#### 5. Swap Fees Not Modeled in Backtest
-
-The hackathon says "simulated transaction costs apply." The Rust engine currently models options premiums, not DEX swap fees. On BSC:
-
-- PancakeSwap: ~0.25% per swap
-- Slippage: 0.1-1% depending on token liquidity
-- Gas: ~$0.05-0.10 per tx
-
-A strategy showing +2% but paying 0.5% round-trip (entry + exit) = only +1% real. If this isn't in the backtest, the gate will approve unprofitable trades.
-
-**Fix:** Add a `fee_bps` parameter to the crypto runner (default 50bps = 0.5% round-trip). Deduct from P&L before gate evaluation.
-
-#### 6. Competition Registration Should Be Day 2, Not Day 8
-
-Registration must happen before June 22 (trading window opens). The build window ends June 21. If ERC-8004 + `twak compete register` isn't working by Day 9, there's no buffer.
-
-**Fix:** Move registration to Day 2 as a parallel task. It's a one-time transaction — no reason to wait.
-
-#### 7. LLM Latency in the Scan Loop
-
-If LLM regime classification runs per-token: 149 × 3-5s = 7-12 minutes per scan cycle. This is too slow for an hourly loop.
-
-**Fix:** Classify regime ONCE per cycle (market-wide, based on BTC/ETH + Fear & Greed + funding). Apply same regime to all tokens. Token ranking should be purely quantitative (momentum score, volume, ATR — no LLM needed).
-
-### Minor Issues
-
-#### 8. Win Rate Threshold Inconsistency
-
-The architecture diagram says "Win rate > 40%" but the detailed Validation Gate section says "> 35%." Pick one and be consistent.
-
-#### 9. Max DD Confusion (Per-Trade vs Portfolio)
-
-The gate says "Max DD < 15%" (per-strategy backtest). The portfolio cap is 25% (internal) / 30% (DQ). These are different scopes but could confuse implementation. Label them clearly: "Strategy Max DD" vs "Portfolio Max DD."
-
-#### 10. Stablecoins in Buy Universe
-
-The 149-token list includes USDT, USDC, DAI, FDUSD, FRAX, lisUSD, USDD, USD1, USDe, FRXUSD, DUSD, XUSD, TUSD, EURC, etc. You should never "go long" on a stablecoin (it won't appreciate). Filter these from the buy universe and only use them as the base/quote asset.
-
-#### 11. x402 Usage — Verify It's Actually Required
-
-The TWAK special prize awards points for "native x402 usage." Verify whether CMC MCP actually gates data behind x402, or if it's API-key-based with x402 as optional. If x402 isn't required by default, explicitly opt into it (even if an API key would work) to score the special prize points.
+1. **Strategy Spec**: Regime-adaptive rules with entry/exit conditions, indicator parameters
+2. **Backtest Results**: Quantitative proof — Sharpe, profit factor, win rate, max drawdown
+3. **Code**: Full optimization loop (Python orchestrator + Rust engine + LLM agents)
+4. **Dashboard**: Visual backtest results, equity curves, trade tables
