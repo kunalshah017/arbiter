@@ -60,6 +60,8 @@ Best result so far:
 - Profit factor: {best_result.get('profit_factor', 0):.2f}%"""
 
         try:
+            if self.client is None:
+                return f"Strategy rejected: {'; '.join(rejection_reasons)}. Try adjusting indicator periods or thresholds."
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[

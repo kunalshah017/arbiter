@@ -3,17 +3,25 @@ import { createChart, LineSeries, type IChartApi } from 'lightweight-charts'
 
 interface EquityPoint { trade_num: number; equity: number }
 
-export function EquityCurve({ data }: { data: EquityPoint[] }) {
+export function EquityCurve({ data }: { data: EquityPoint[] | number[] | undefined }) {
     const chartRef = useRef<HTMLDivElement>(null)
     const chartInstance = useRef<IChartApi | null>(null)
 
-    const startValue = data.length > 0 ? data[0].equity : 0
-    const endValue = data.length > 0 ? data[data.length - 1].equity : 0
+    // Normalize: accept both number[] and {trade_num, equity}[]
+    const points: EquityPoint[] = !data || data.length === 0 ? [] :
+        typeof data[0] === 'number'
+            ? (data as number[]).map((v, i) => ({ trade_num: i, equity: v }))
+            : data as EquityPoint[]
+
+    const startValue = points.length > 0 ? points[0].equity : 0
+    const endValue = points.length > 0 ? points[points.length - 1].equity : 0
     const pctChange = startValue > 0 ? ((endValue - startValue) / startValue) * 100 : 0
     const profitable = endValue >= startValue
 
+    if (points.length === 0) return null
+
     useEffect(() => {
-        if (!chartRef.current || data.length === 0) return
+        if (!chartRef.current || points.length === 0) return
         if (chartInstance.current) { try { chartInstance.current.remove() } catch { } chartInstance.current = null }
 
         const container = chartRef.current
@@ -31,7 +39,7 @@ export function EquityCurve({ data }: { data: EquityPoint[] }) {
             lineWidth: 2,
             priceFormat: { type: 'custom', formatter: (v: number) => `$${v.toFixed(0)}` },
         })
-        lineSeries.setData(data.map((d, i) => ({ time: (i + 1) as any, value: d.equity })))
+        lineSeries.setData(points.map((d, i) => ({ time: (i + 1) as any, value: d.equity })))
         chart.timeScale().fitContent()
 
         const handleResize = () => { if (chartRef.current) chart.applyOptions({ width: container.clientWidth }) }
@@ -41,7 +49,7 @@ export function EquityCurve({ data }: { data: EquityPoint[] }) {
             window.removeEventListener('resize', handleResize)
             if (chartInstance.current === chart) { chartInstance.current = null; try { chart.remove() } catch { } }
         }
-    }, [data, profitable])
+    }, [points, profitable])
 
     return (
         <div className="neo-card p-4">

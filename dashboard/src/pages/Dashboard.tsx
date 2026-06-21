@@ -3,12 +3,10 @@ import { Link } from 'react-router-dom'
 import { OHLCVChart } from '../components/OHLCVChart'
 import { BacktestPanel } from '../components/BacktestPanel'
 import { ScannerPanel } from '../components/ScannerPanel'
-import { PortfolioPanel } from '../components/PortfolioPanel'
-import { AgentStatus } from '../components/AgentStatus'
 import { OptimizerPanel } from '../components/OptimizerPanel'
-import { Activity, BarChart3, Search, Wallet, Radio, Sparkles } from 'lucide-react'
+import { Activity, BarChart3, Search, Sparkles } from 'lucide-react'
 
-type Tab = 'chart' | 'backtest' | 'scanner' | 'portfolio' | 'agent' | 'optimizer'
+type Tab = 'chart' | 'backtest' | 'scanner' | 'optimizer'
 
 export function Dashboard() {
     const [activeTab, setActiveTab] = useState<Tab>('chart')
@@ -36,9 +34,7 @@ export function Dashboard() {
                     { id: 'chart' as Tab, label: 'OHLCV Chart', icon: Activity },
                     { id: 'backtest' as Tab, label: 'Backtest', icon: BarChart3 },
                     { id: 'scanner' as Tab, label: 'Scanner', icon: Search },
-                    { id: 'portfolio' as Tab, label: 'Portfolio', icon: Wallet },
                     { id: 'optimizer' as Tab, label: 'Optimizer', icon: Sparkles },
-                    { id: 'agent' as Tab, label: 'Agent', icon: Radio },
                 ]).map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                         className={`neo-btn flex items-center gap-2 text-sm ${activeTab === tab.id ? 'neo-btn-primary' : 'bg-white'}`}>
@@ -51,9 +47,7 @@ export function Dashboard() {
                 {activeTab === 'chart' && <OHLCVChart symbol={symbol} />}
                 {activeTab === 'backtest' && <BacktestPanel symbol={symbol} />}
                 {activeTab === 'scanner' && <ScannerPanel />}
-                {activeTab === 'portfolio' && <PortfolioPanel />}
                 {activeTab === 'optimizer' && <OptimizerPanel symbol={symbol} />}
-                {activeTab === 'agent' && <AgentStatus />}
             </main>
         </div>
     )
