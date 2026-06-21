@@ -5,9 +5,10 @@ import { BacktestPanel } from '../components/BacktestPanel'
 import { ScannerPanel } from '../components/ScannerPanel'
 import { PortfolioPanel } from '../components/PortfolioPanel'
 import { AgentStatus } from '../components/AgentStatus'
-import { Activity, BarChart3, Search, Wallet, Radio } from 'lucide-react'
+import { OptimizerPanel } from '../components/OptimizerPanel'
+import { Activity, BarChart3, Search, Wallet, Radio, Sparkles } from 'lucide-react'
 
-type Tab = 'chart' | 'backtest' | 'scanner' | 'portfolio' | 'agent'
+type Tab = 'chart' | 'backtest' | 'scanner' | 'portfolio' | 'agent' | 'optimizer'
 
 export function Dashboard() {
     const [activeTab, setActiveTab] = useState<Tab>('chart')
@@ -36,6 +37,7 @@ export function Dashboard() {
                     { id: 'backtest' as Tab, label: 'Backtest', icon: BarChart3 },
                     { id: 'scanner' as Tab, label: 'Scanner', icon: Search },
                     { id: 'portfolio' as Tab, label: 'Portfolio', icon: Wallet },
+                    { id: 'optimizer' as Tab, label: 'Optimizer', icon: Sparkles },
                     { id: 'agent' as Tab, label: 'Agent', icon: Radio },
                 ]).map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -50,6 +52,7 @@ export function Dashboard() {
                 {activeTab === 'backtest' && <BacktestPanel symbol={symbol} />}
                 {activeTab === 'scanner' && <ScannerPanel />}
                 {activeTab === 'portfolio' && <PortfolioPanel />}
+                {activeTab === 'optimizer' && <OptimizerPanel symbol={symbol} />}
                 {activeTab === 'agent' && <AgentStatus />}
             </main>
         </div>
