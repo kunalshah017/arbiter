@@ -81,7 +81,8 @@ async def save_optimization_run(db: AsyncSession, **kwargs) -> OptimizationRun:
 
 
 async def get_optimization_history(db: AsyncSession, symbol: str | None = None, limit: int = 20) -> list[OptimizationRun]:
-    query = select(OptimizationRun).order_by(desc(OptimizationRun.timestamp)).limit(limit)
+    query = select(OptimizationRun).order_by(
+        desc(OptimizationRun.timestamp)).limit(limit)
     if symbol:
         query = query.where(OptimizationRun.symbol == symbol)
     result = await db.execute(query)

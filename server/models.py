@@ -71,7 +71,8 @@ class AgentLog(Base):
 class OptimizationRun(Base):
     __tablename__ = "optimization_runs"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), index=True)
     symbol: Mapped[str] = mapped_column(String(20), index=True)
     regime: Mapped[str] = mapped_column(String(30))
     status: Mapped[str] = mapped_column(String(20))

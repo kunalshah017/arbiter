@@ -29,7 +29,7 @@ def test_normalize_variant_rejects_empty():
 def test_template_to_config():
     gen = StrategyGenerator.__new__(StrategyGenerator)
     config = gen._template_to_config({"name": "X", "indicators": [{"type": "EMA", "period": 9}],
-                                       "entry_conditions": [{"left": "EMA_9", "op": ">", "right": "close"}],
-                                       "exit_conditions": [], "stop_loss_atr_multiple": 2.0, "take_profit_atr_multiple": 4.0})
+                                      "entry_conditions": [{"left": "EMA_9", "op": ">", "right": "close"}],
+                                      "exit_conditions": [], "stop_loss_atr_multiple": 2.0, "take_profit_atr_multiple": 4.0})
     assert config["fee_bps"] == 50
     assert config["atr_period"] == 14

@@ -52,10 +52,12 @@ class StrategyOptimizer:
         best_score = float("-inf")
 
         for iteration in range(1, max_iter + 1):
-            logger.info("optimizer.iteration", iteration=iteration, max=max_iter)
+            logger.info("optimizer.iteration",
+                        iteration=iteration, max=max_iter)
 
             # Generate variants
-            variants = self.generator.generate_variants(base_template, n_variants, feedback)
+            variants = self.generator.generate_variants(
+                base_template, n_variants, feedback)
 
             # In first iteration, always include the base template
             if iteration == 1:
@@ -69,9 +71,11 @@ class StrategyOptimizer:
                 config_json = json.dumps(config)
 
                 try:
-                    gate_result, raw = validate_strategy_detailed(bars_json, config_json)
+                    gate_result, raw = validate_strategy_detailed(
+                        bars_json, config_json)
                 except Exception as e:
-                    logger.warning("optimizer.eval_failed", error=str(e), name=candidate.get("name"))
+                    logger.warning("optimizer.eval_failed", error=str(
+                        e), name=candidate.get("name"))
                     continue
 
                 attempt = {
@@ -86,13 +90,15 @@ class StrategyOptimizer:
                 all_attempts.append(attempt)
 
                 # Track best result for advisor context
-                score = raw.get("total_return_pct", 0) - abs(raw.get("max_drawdown_pct", 0))
+                score = raw.get("total_return_pct", 0) - \
+                    abs(raw.get("max_drawdown_pct", 0))
                 if score > best_score:
                     best_score = score
                     best_raw = raw
 
                 if gate_result.passed:
-                    logger.info("optimizer.accepted", name=candidate.get("name"), iteration=iteration)
+                    logger.info("optimizer.accepted", name=candidate.get(
+                        "name"), iteration=iteration)
                     return OptimizationResult(
                         status="accepted",
                         strategy_config=config,
@@ -106,14 +112,16 @@ class StrategyOptimizer:
 
             # No candidate passed — get advisor feedback for next iteration
             if candidates:
-                last_config = self.generator._template_to_config(candidates[-1])
+                last_config = self.generator._template_to_config(
+                    candidates[-1])
                 feedback = self.advisor.generate_feedback(
                     strategy_config=last_config,
                     backtest_result=best_raw or {},
                     rejection_reasons=gate_result.rejection_reasons if gate_result else [],
                     best_result=best_raw,
                 )
-                logger.info("optimizer.feedback", iteration=iteration, feedback_len=len(feedback))
+                logger.info("optimizer.feedback",
+                            iteration=iteration, feedback_len=len(feedback))
 
         # Exhausted all iterations
         return OptimizationResult(

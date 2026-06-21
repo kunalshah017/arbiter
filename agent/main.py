@@ -161,7 +161,8 @@ class Arbiter:
                         executed += 1
                         self._trades_today += 1
                 else:
-                    logger.debug("optimizer.no_acceptable_strategy", symbol=token.symbol, status=opt_result.status)
+                    logger.debug("optimizer.no_acceptable_strategy",
+                                 symbol=token.symbol, status=opt_result.status)
             else:
                 strategy_config = get_strategy_config(regime)
                 config_json = json.dumps(strategy_config)

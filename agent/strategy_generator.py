@@ -16,13 +16,16 @@ GEMINI_GENERATOR_MODEL = "gemini-3.5-flash"
 def _get_llm_client_and_model(nvidia_model: str, gemini_model: str) -> tuple[OpenAI, str]:
     """Get LLM client preferring NVIDIA NIM, falling back to Google Gemini."""
     if settings.nvidia_api_key:
-        client = OpenAI(base_url=NVIDIA_BASE_URL, api_key=settings.nvidia_api_key)
+        client = OpenAI(base_url=NVIDIA_BASE_URL,
+                        api_key=settings.nvidia_api_key)
         return client, nvidia_model
     elif settings.google_api_key:
-        client = OpenAI(base_url=GEMINI_BASE_URL, api_key=settings.google_api_key)
+        client = OpenAI(base_url=GEMINI_BASE_URL,
+                        api_key=settings.google_api_key)
         return client, gemini_model
     else:
-        raise RuntimeError("No LLM API key configured. Set NVIDIA_API_KEY or GOOGLE_API_KEY.")
+        raise RuntimeError(
+            "No LLM API key configured. Set NVIDIA_API_KEY or GOOGLE_API_KEY.")
 
 
 SYSTEM_PROMPT = """You are a quantitative trading strategy designer. Given a base strategy template, generate variants that modify indicator parameters, entry/exit conditions, or stop-loss/take-profit levels.
