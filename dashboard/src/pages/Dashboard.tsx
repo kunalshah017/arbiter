@@ -111,60 +111,11 @@ function StatusBadge({ status }: { status: string }) {
 
 export function Dashboard() {
     const [symbol, setSymbol] = useState('BNB')
-    const [interval, setInterval_] = useState('1m')
-    const [regime, setRegime] = useState('trending_up')
+    const [interval, setInterval_] = useState('1h')
+    const [regime] = useState('trending_up')
     const [result, setResult] = useState<OptimizeResult | null>(null)
     const [isRunning, setIsRunning] = useState(false)
     const [error, setError] = useState('')
-
-    const runOptimize = async (useOptimizer = false) => {
-        setIsRunning(true)
-        setError('')
-        try {
-            const endpoint = useOptimizer ? '/api/optimize' : '/api/backtest/detailed'
-            const resp = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ symbol, regime, interval, limit: 1000 }),
-            })
-            if (!resp.ok) {
-                const d = await resp.json()
-                throw new Error(d.detail || 'Request failed')
-            }
-            const data: OptimizeResult = await resp.json()
-
-            // Normalize endpoint differences
-            if (!data.status) data.status = data.passed ? 'accepted' : 'best_effort'
-            if (!data.iteration) data.iteration = 1
-            if (!data.total_iterations) data.total_iterations = 1
-
-            // Fetch chart geometry if missing
-            if (!data.bars || !data.trades) {
-                const btResp = await fetch('/api/backtest/detailed', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol, regime, interval, limit: 1000 }),
-                })
-                if (btResp.ok) {
-                    const bt = await btResp.json()
-                    data.bars = bt.bars
-                    data.trades = bt.trades
-                    data.equity_curve = bt.equity_curve
-                    if (!data.total_return_pct && bt.total_return_pct != null) data.total_return_pct = bt.total_return_pct
-                    if (!data.max_drawdown_pct && bt.max_drawdown_pct != null) data.max_drawdown_pct = bt.max_drawdown_pct
-                    if (!data.win_rate && bt.win_rate != null) data.win_rate = bt.win_rate
-                    if (!data.profit_factor && bt.profit_factor != null) data.profit_factor = bt.profit_factor
-                    if (!data.expectancy_pct && bt.expectancy_pct != null) data.expectancy_pct = bt.expectancy_pct
-                    if (!data.num_trades && bt.num_trades != null) data.num_trades = bt.num_trades
-                }
-            }
-            setResult(data)
-        } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'Unknown error')
-        } finally {
-            setIsRunning(false)
-        }
-    }
 
     const resetView = () => {
         setResult(null)
@@ -207,44 +158,12 @@ export function Dashboard() {
                             </select>
                         </div>
                         <select
-                            className="bg-transparent border-r-[2px] border-border/30 px-2 py-1 text-sm font-bold outline-none cursor-pointer"
+                            className="bg-transparent px-2 py-1 text-sm font-bold outline-none cursor-pointer"
                             value={interval}
                             onChange={(e) => setInterval_(e.target.value)}
                         >
                             {INTERVALS.map(iv => <option key={iv} value={iv}>{iv}</option>)}
                         </select>
-                        <select
-                            className="bg-transparent px-2 py-1 text-sm font-bold outline-none cursor-pointer w-32 truncate"
-                            value={regime}
-                            onChange={e => setRegime(e.target.value)}
-                        >
-                            {REGIMES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => runOptimize(false)}
-                            disabled={isRunning}
-                            className="neo-btn neo-btn-primary flex items-center gap-2 px-4 py-1.5 min-w-[120px] justify-center"
-                        >
-                            {isRunning ? <Loader2 size={16} className="animate-spin" /> : <Activity size={16} />}
-                            {isRunning ? 'Running...' : 'Backtest'}
-                        </button>
-                        <button
-                            onClick={() => runOptimize(true)}
-                            disabled={isRunning}
-                            className="neo-btn neo-btn-secondary text-white flex items-center gap-2 px-4 py-1.5"
-                            title="Multi-Agent LLM Optimizer"
-                        >
-                            <Sparkles size={16} />
-                            <span className="hidden sm:inline">Optimize</span>
-                        </button>
-                        {result && (
-                            <button onClick={resetView} className="neo-btn bg-white px-2 py-1.5 border-border" title="Reset View">
-                                <RotateCcw size={16} />
-                            </button>
-                        )}
                     </div>
                 </div>
             </header>
@@ -269,6 +188,7 @@ export function Dashboard() {
                                 <StrategyBuilder
                                     symbol={symbol}
                                     interval={interval}
+                                    regime={regime}
                                     onResult={(data) => setResult(data as OptimizeResult)}
                                     onRunning={setIsRunning}
                                     onError={setError}
@@ -340,6 +260,14 @@ export function Dashboard() {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Reset Button */}
+                            <button
+                                onClick={resetView}
+                                className="neo-btn bg-white w-full mt-4 flex items-center justify-center gap-2 text-xs font-bold py-3"
+                            >
+                                <RotateCcw size={14} /> Reset & Try Another Strategy
+                            </button>
                             )}
                         </div>
                     </Panel>

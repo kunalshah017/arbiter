@@ -49,32 +49,33 @@ high_volatility:
   take_profit_atr_multiple: 5.0
 
 trending_down:
-  name: "Defensive (Cash Rotation)"
+  name: "Cautious Momentum"
   indicators:
-    - { type: "EMA", period: 9 }
-    - { type: "EMA", period: 50 }
+    - { type: "EMA", period: 12 }
+    - { type: "EMA", period: 26 }
     - { type: "RSI", period: 14 }
     - { type: "ATR", period: 14 }
   entry_conditions:
-    - { left: "EMA_9", op: ">", right: "EMA_50" }
-    - { left: "RSI_14", op: ">", right: "60" }
-    - { left: "close", op: ">", right: "EMA_50" }
+    - { left: "EMA_12", op: ">", right: "EMA_26" }
+    - { left: "RSI_14", op: ">", right: "45" }
+    - { left: "RSI_14", op: "<", right: "75" }
   exit_conditions:
-    - { left: "RSI_14", op: "<", right: "50" }
-    - { left: "close", op: "<", right: "EMA_9" }
+    - { left: "EMA_12", op: "<", right: "EMA_26" }
   stop_loss_atr_multiple: 1.5
-  take_profit_atr_multiple: 2.5
+  take_profit_atr_multiple: 3.5
 
 choppy:
-  name: "Ultra Conservative"
+  name: "Tight Range Scalper"
   indicators:
-    - { type: "RSI", period: 14 }
-    - { type: "BBands", period: 20, std_dev: 2.5 }
+    - { type: "EMA", period: 8 }
+    - { type: "EMA", period: 21 }
+    - { type: "RSI", period: 9 }
     - { type: "ATR", period: 14 }
   entry_conditions:
-    - { left: "RSI_14", op: "<", right: "20" }
-    - { left: "close", op: "<", right: "BBANDS_20.lower" }
+    - { left: "EMA_8", op: ">", right: "EMA_21" }
+    - { left: "RSI_9", op: ">", right: "50" }
   exit_conditions:
-    - { left: "RSI_14", op: ">", right: "50" }
+    - { left: "RSI_9", op: "<", right: "40" }
+    - { left: "EMA_8", op: "<", right: "EMA_21" }
   stop_loss_atr_multiple: 1.0
   take_profit_atr_multiple: 2.0

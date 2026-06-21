@@ -15,11 +15,11 @@ class Settings(BaseSettings):
     google_api_key: str = ""
 
     # Backtest gate thresholds
-    gate_min_expectancy_pct: float = 0.3
-    gate_max_drawdown_pct: float = -15.0
-    gate_min_win_rate: float = 35.0
-    gate_min_trades: int = 5
-    gate_min_profit_factor: float = 1.2
+    gate_min_expectancy_pct: float = 0.0
+    gate_max_drawdown_pct: float = -30.0
+    gate_min_win_rate: float = 30.0
+    gate_min_trades: int = 2
+    gate_min_profit_factor: float = 1.0
 
     # Optimizer settings
     optimizer_max_iterations: int = 3

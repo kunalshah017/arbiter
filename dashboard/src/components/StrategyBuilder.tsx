@@ -29,12 +29,21 @@ interface CustomStrategy {
 interface Props {
     symbol: string
     interval: string
+    regime: string
     onResult: (data: unknown) => void
     onRunning: (v: boolean) => void
     onError: (e: string) => void
 }
 
-export function StrategyBuilder({ symbol, interval, onResult, onRunning, onError }: Props) {
+const PREMADE_STRATEGIES = [
+    { regime: 'trending_up', name: 'Momentum Breakout', desc: 'EMA crossover + RSI filter' },
+    { regime: 'mean_reverting', name: 'Mean Reversion', desc: 'BBands + RSI oversold' },
+    { regime: 'high_volatility', name: 'Volatility Breakout', desc: 'ATR expansion + momentum' },
+    { regime: 'trending_down', name: 'Cautious Momentum', desc: 'MACD-style trend following' },
+    { regime: 'choppy', name: 'Tight Range Scalper', desc: 'Fast EMA + RSI scalp' },
+]
+
+export function StrategyBuilder({ symbol, interval, regime, onResult, onRunning, onError }: Props) {
     const [strategy, setStrategy] = useState<CustomStrategy>({
         indicators: [
             { type: 'EMA', period: 9 },
@@ -198,6 +207,66 @@ export function StrategyBuilder({ symbol, interval, onResult, onRunning, onError
         })
     }
 
+    const runPremadeBacktest = async (selectedRegime?: string) => {
+        onRunning(true)
+        onError('')
+        try {
+            const resp = await fetch('/api/backtest/detailed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol, regime: selectedRegime || regime, interval, limit: 1000 }),
+            })
+            if (!resp.ok) {
+                const d = await resp.json()
+                throw new Error(d.detail || 'Backtest failed')
+            }
+            const data = await resp.json()
+            if (!data.status) data.status = data.passed ? 'accepted' : 'best_effort'
+            if (!data.iteration) data.iteration = 1
+            if (!data.total_iterations) data.total_iterations = 1
+            onResult(data)
+        } catch (e: unknown) {
+            onError(e instanceof Error ? e.message : 'Unknown error')
+        } finally {
+            onRunning(false)
+        }
+    }
+
+    const runOptimize = async () => {
+        onRunning(true)
+        onError('')
+        try {
+            const resp = await fetch('/api/optimize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol, regime, interval, limit: 1000 }),
+            })
+            if (!resp.ok) {
+                const d = await resp.json()
+                throw new Error(d.detail || 'Optimization failed')
+            }
+            const data = await resp.json()
+            if (!data.bars || !data.trades) {
+                const btResp = await fetch('/api/backtest/detailed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol, regime, interval, limit: 1000 }),
+                })
+                if (btResp.ok) {
+                    const bt = await btResp.json()
+                    data.bars = bt.bars
+                    data.trades = bt.trades
+                    data.equity_curve = bt.equity_curve
+                }
+            }
+            onResult(data)
+        } catch (e: unknown) {
+            onError(e instanceof Error ? e.message : 'Unknown error')
+        } finally {
+            onRunning(false)
+        }
+    }
+
     // Generate available signal options from defined indicators
     const getSignalOptions = (): string[] => {
         const opts: string[] = ['close', 'open', 'high', 'low']
@@ -241,6 +310,34 @@ export function StrategyBuilder({ symbol, interval, onResult, onRunning, onError
                     >
                         {nlLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                         {nlLoading ? 'Generating...' : 'Generate with AI'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Premade Strategies */}
+            <div className="neo-card overflow-hidden">
+                <div className="p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Zap size={14} className="text-primary" />
+                        <span className="font-bold text-xs uppercase tracking-wider">Quick Strategies</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        {PREMADE_STRATEGIES.map(s => (
+                            <button
+                                key={s.regime}
+                                onClick={() => runPremadeBacktest(s.regime)}
+                                className="text-left p-2 rounded border border-border/30 hover:border-primary hover:bg-primary/5 transition-all group"
+                            >
+                                <div className="text-xs font-bold group-hover:text-secondary">{s.name}</div>
+                                <div className="text-[10px] opacity-60">{s.desc}</div>
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        onClick={runOptimize}
+                        className="neo-btn neo-btn-secondary text-white w-full mt-3 flex items-center justify-center gap-2 text-xs font-bold py-2.5"
+                    >
+                        <Sparkles size={14} /> AI Optimize (Multi-Agent)
                     </button>
                 </div>
             </div>

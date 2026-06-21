@@ -164,6 +164,11 @@ async def get_ohlcv(symbol: str, interval: str = "1h", limit: int = 200, endTime
     return [{"ts": b.ts, "o": b.open, "h": b.high, "l": b.low, "c": b.close, "v": b.volume} for b in bars]
 
 
+# Ensure we fetch enough bars for meaningful backtests per interval
+INTERVAL_MIN_BARS = {"1m": 1000, "5m": 1000,
+                     "15m": 720, "1h": 720, "4h": 500, "1d": 365}
+
+
 @app.post("/api/backtest")
 async def run_backtest(req: BacktestRequest):
     try:
@@ -226,7 +231,8 @@ async def run_backtest_detailed(req: BacktestRequest):
         regime = Regime(req.regime)
     except ValueError:
         raise HTTPException(400, f"Invalid regime: {req.regime}")
-    bars = await binance.fetch_ohlcv(req.symbol, interval=req.interval, limit=req.limit)
+    effective_limit = max(req.limit, INTERVAL_MIN_BARS.get(req.interval, 720))
+    bars = await binance.fetch_ohlcv(req.symbol, interval=req.interval, limit=effective_limit)
     if not bars or len(bars) < 50:
         raise HTTPException(400, f"Insufficient data for {req.symbol}")
     engine_bars = bars_to_engine_json(bars)
@@ -289,7 +295,8 @@ async def run_backtest_detailed(req: BacktestRequest):
 @app.post("/api/backtest/custom")
 async def run_custom_backtest(req: CustomBacktestRequest):
     """Run backtest with a user-defined custom strategy config."""
-    bars = await binance.fetch_ohlcv(req.symbol, interval=req.interval, limit=req.limit)
+    effective_limit = max(req.limit, INTERVAL_MIN_BARS.get(req.interval, 720))
+    bars = await binance.fetch_ohlcv(req.symbol, interval=req.interval, limit=effective_limit)
     if not bars or len(bars) < 50:
         raise HTTPException(400, f"Insufficient data for {req.symbol}")
     engine_bars = bars_to_engine_json(bars)
