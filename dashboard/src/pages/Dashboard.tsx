@@ -117,20 +117,26 @@ export function Dashboard() {
     const [isRunning, setIsRunning] = useState(false)
     const [error, setError] = useState('')
 
-    const runOptimize = async () => {
+    const runOptimize = async (useOptimizer = false) => {
         setIsRunning(true)
         setError('')
         try {
-            const resp = await fetch('/api/optimize', {
+            const endpoint = useOptimizer ? '/api/optimize' : '/api/backtest/detailed'
+            const resp = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ symbol, regime, interval, limit: 1000 }),
             })
             if (!resp.ok) {
                 const d = await resp.json()
-                throw new Error(d.detail || 'Optimization failed')
+                throw new Error(d.detail || 'Request failed')
             }
             const data: OptimizeResult = await resp.json()
+
+            // backtest/detailed returns slightly different shape — normalize
+            if (!data.status) data.status = data.passed ? 'accepted' : 'best_effort'
+            if (!data.iteration) data.iteration = 1
+            if (!data.total_iterations) data.total_iterations = 1
 
             // If optimize doesn't return bars/trades, fetch a detailed backtest for chart data
             if (!data.bars || !data.trades) {
@@ -214,12 +220,22 @@ export function Dashboard() {
                 </select>
 
                 <button
-                    onClick={runOptimize}
+                    onClick={() => runOptimize(false)}
+                    disabled={isRunning}
+                    className="neo-btn neo-btn-primary flex items-center gap-2 text-sm"
+                >
+                    {isRunning ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                    {isRunning ? 'Running…' : 'Backtest'}
+                </button>
+
+                <button
+                    onClick={() => runOptimize(true)}
                     disabled={isRunning}
                     className="neo-btn neo-btn-secondary flex items-center gap-2 text-sm"
+                    title="Uses LLM to generate and test strategy variations (slower, requires API key)"
                 >
-                    {isRunning ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                    {isRunning ? 'Optimizing…' : 'Run Backtest'}
+                    <Sparkles size={16} />
+                    Optimize
                 </button>
 
                 {result && <StatusBadge status={result.status} />}
