@@ -44,6 +44,18 @@ class BacktestRequest(BaseModel):
     limit: int = 720
 
 
+class CustomBacktestRequest(BaseModel):
+    symbol: str = "BNB"
+    interval: str = "1h"
+    limit: int = 720
+    indicators: list[dict]
+    entry_conditions: list[dict]
+    exit_conditions: list[dict]
+    stop_loss_atr_multiple: float = 2.0
+    take_profit_atr_multiple: float = 4.0
+    initial_capital: float = 10000.0
+
+
 @app.get("/api/ohlcv/{symbol}")
 async def get_ohlcv(symbol: str, interval: str = "1h", limit: int = 200, endTime: int | None = None):
     if endTime:
@@ -185,7 +197,83 @@ async def run_backtest_detailed(req: BacktestRequest):
     }
 
 
-@app.get("/api/portfolio")
+@app.post("/api/backtest/custom")
+async def run_custom_backtest(req: CustomBacktestRequest):
+    """Run backtest with a user-defined custom strategy config."""
+    bars = await binance.fetch_ohlcv(req.symbol, interval=req.interval, limit=req.limit)
+    if not bars or len(bars) < 50:
+        raise HTTPException(400, f"Insufficient data for {req.symbol}")
+    engine_bars = bars_to_engine_json(bars)
+
+    config = {
+        "indicators": req.indicators,
+        "entry_conditions": req.entry_conditions,
+        "exit_conditions": req.exit_conditions,
+        "stop_loss_atr_multiple": req.stop_loss_atr_multiple,
+        "take_profit_atr_multiple": req.take_profit_atr_multiple,
+        "fee_bps": 50,
+        "initial_capital": req.initial_capital,
+        "warmup_bars": 30,
+        "atr_period": 14,
+    }
+
+    raw_result = json.loads(crypto_backtest(
+        json.dumps(engine_bars), json.dumps(config)))
+
+    trades = []
+    trade_pnls = raw_result.get("trade_pnls", [])
+    avg_bars = raw_result.get("avg_trade_bars", 0)
+    warmup = config.get("warmup_bars", 30)
+
+    bar_idx = warmup
+    for i, pnl in enumerate(trade_pnls):
+        entry_bar = min(bar_idx, len(engine_bars) - 1)
+        exit_bar = min(entry_bar + max(int(avg_bars), 1), len(engine_bars) - 1)
+        entry_ts = engine_bars[entry_bar]["ts"] if entry_bar < len(
+            engine_bars) else 0
+        exit_ts = engine_bars[exit_bar]["ts"] if exit_bar < len(
+            engine_bars) else 0
+        entry_price = engine_bars[entry_bar]["c"] if entry_bar < len(
+            engine_bars) else 0
+        exit_price = engine_bars[exit_bar]["c"] if exit_bar < len(
+            engine_bars) else 0
+        trades.append({
+            "id": i + 1,
+            "entry_ts": entry_ts,
+            "exit_ts": exit_ts,
+            "entry_price": entry_price,
+            "exit_price": exit_price,
+            "pnl_pct": pnl,
+            "duration_bars": exit_bar - entry_bar,
+        })
+        bar_idx = exit_bar + 1
+
+    gate_result = validate_strategy(
+        json.dumps(engine_bars), json.dumps(config))
+
+    return {
+        "symbol": req.symbol,
+        "strategy_name": "Custom Strategy",
+        "strategy_config": config,
+        "bars_count": len(bars),
+        "bars": engine_bars,
+        "passed": gate_result.passed,
+        "status": "accepted" if gate_result.passed else "best_effort",
+        "iteration": 1,
+        "total_iterations": 1,
+        "total_return_pct": gate_result.total_return_pct,
+        "max_drawdown_pct": gate_result.max_drawdown_pct,
+        "win_rate": gate_result.win_rate,
+        "num_trades": gate_result.num_trades,
+        "profit_factor": gate_result.profit_factor,
+        "expectancy_pct": gate_result.expectancy_pct,
+        "rejection_reasons": gate_result.rejection_reasons,
+        "trades": trades,
+        "trade_pnls": trade_pnls,
+        "equity_curve": _build_equity_curve(trade_pnls, req.initial_capital),
+    }
+
+
 async def get_portfolio():
     return {
         "cash_usd": 850.0,

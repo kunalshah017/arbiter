@@ -8,6 +8,7 @@ import { EquityCurve } from '../components/EquityCurve'
 import { TradeTable } from '../components/TradeTable'
 import { ArbiterLogo } from '../components/ArbiterLogo'
 import { TokenLogo } from '../components/TokenLogo'
+import { StrategyBuilder } from '../components/StrategyBuilder'
 import {
     Activity, TrendingUp, TrendingDown, Target, Percent, Award,
     BarChart3, Zap, CheckCircle, XCircle, Sparkles, Search,
@@ -265,11 +266,13 @@ export function Dashboard() {
                             )}
 
                             {!result ? (
-                                <div className="h-full flex flex-col items-center justify-center opacity-40 text-center gap-3">
-                                    <Search size={32} />
-                                    <p className="text-xs font-bold uppercase">Ready to backtest</p>
-                                    <p className="text-[10px]">Select constraints above and hit Run to evaluate strategy edge.</p>
-                                </div>
+                                <StrategyBuilder
+                                    symbol={symbol}
+                                    interval={interval}
+                                    onResult={(data) => setResult(data as OptimizeResult)}
+                                    onRunning={setIsRunning}
+                                    onError={setError}
+                                />
                             ) : (
                                 <div className="space-y-6">
                                     {/* Optimizer Status */}
