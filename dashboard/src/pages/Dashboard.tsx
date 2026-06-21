@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import Markdown from 'react-markdown'
 import { OHLCVChart } from '../components/OHLCVChart'
 import { BacktestChart } from '../components/BacktestChart'
 import { EquityCurve } from '../components/EquityCurve'
@@ -299,9 +300,9 @@ export function Dashboard() {
                                     <span className="font-mono font-bold">{result.all_attempts.length}</span>
                                 </div>
                                 {result.last_feedback && (
-                                    <div className="mt-2 p-2 bg-gray-50 border-2 border-border/30 rounded text-xs leading-relaxed">
+                                    <div className="mt-2 p-2 bg-gray-50 border-2 border-border/30 rounded text-xs leading-relaxed prose prose-xs max-w-none">
                                         <span className="font-bold uppercase text-[10px] opacity-50 block mb-1">Advisor Feedback</span>
-                                        {result.last_feedback}
+                                        <Markdown>{result.last_feedback}</Markdown>
                                     </div>
                                 )}
                                 {result.rejection_reasons.length > 0 && (
