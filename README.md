@@ -64,13 +64,13 @@ A **closed-loop strategy optimization system** where:
 
 Arbiter uses the CoinMarketCap MCP server for:
 
-| Tool | Usage |
-|------|-------|
-| `get_global_metrics_latest` | Fear & Greed Index, BTC dominance, total market cap for regime detection |
-| `get_global_crypto_derivatives_metrics` | Funding rates, open interest, leverage for positioning context |
-| `get_crypto_technical_analysis` | Pre-computed RSI, EMA, MACD for signal confirmation |
-| `get_crypto_quotes_latest` | Real-time price data for target tokens |
-| `trending_crypto_narratives` | Narrative context for strategy generation |
+| Tool                                    | Usage                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| `get_global_metrics_latest`             | Fear & Greed Index, BTC dominance, total market cap for regime detection |
+| `get_global_crypto_derivatives_metrics` | Funding rates, open interest, leverage for positioning context           |
+| `get_crypto_technical_analysis`         | Pre-computed RSI, EMA, MACD for signal confirmation                      |
+| `get_crypto_quotes_latest`              | Real-time price data for target tokens                                   |
+| `trending_crypto_narratives`            | Narrative context for strategy generation                                |
 
 This data feeds directly into the optimization loop's `seed_feedback` parameter, giving the LLM agents market context before generating strategies.
 
@@ -89,18 +89,18 @@ This data feeds directly into the optimization loop's `seed_feedback` parameter,
 ```json
 {
   "indicators": [
-    {"type": "EMA", "period": 9},
-    {"type": "EMA", "period": 21},
-    {"type": "RSI", "period": 14},
-    {"type": "ATR", "period": 14}
+    { "type": "EMA", "period": 9 },
+    { "type": "EMA", "period": 21 },
+    { "type": "RSI", "period": 14 },
+    { "type": "ATR", "period": 14 }
   ],
   "entry_conditions": [
-    {"left": "EMA_9", "op": ">", "right": "EMA_21"},
-    {"left": "RSI_14", "op": ">", "right": "55"}
+    { "left": "EMA_9", "op": ">", "right": "EMA_21" },
+    { "left": "RSI_14", "op": ">", "right": "55" }
   ],
   "exit_conditions": [
-    {"left": "EMA_9", "op": "crossunder", "right": "EMA_21"},
-    {"left": "RSI_14", "op": "<", "right": "40"}
+    { "left": "EMA_9", "op": "crossunder", "right": "EMA_21" },
+    { "left": "RSI_14", "op": "<", "right": "40" }
   ],
   "stop_loss_atr_multiple": 2.0,
   "take_profit_atr_multiple": 4.0
@@ -109,13 +109,13 @@ This data feeds directly into the optimization loop's `seed_feedback` parameter,
 
 ## Backtest Results (BNB/USDT, 1h, 30 days)
 
-| Strategy | Trades | Return | Win Rate | Profit Factor |
-|----------|--------|--------|----------|---------------|
-| Momentum Breakout | 20 | +8.94% | 50.0% | 1.76 |
-| Mean Reversion | 17 | +5.09% | 52.9% | 1.46 |
-| Volatility Breakout | 27 | +5.67% | 40.7% | 1.51 |
-| Cautious Momentum | 22 | +4.61% | 45.5% | 1.37 |
-| Tight Range Scalper | 42 | +12.70% | 47.6% | 1.95 |
+| Strategy            | Trades | Return  | Win Rate | Profit Factor |
+| ------------------- | ------ | ------- | -------- | ------------- |
+| Momentum Breakout   | 20     | +8.94%  | 50.0%    | 1.76          |
+| Mean Reversion      | 17     | +5.09%  | 52.9%    | 1.46          |
+| Volatility Breakout | 27     | +5.67%  | 40.7%    | 1.51          |
+| Cautious Momentum   | 22     | +4.61%  | 45.5%    | 1.37          |
+| Tight Range Scalper | 42     | +12.70% | 47.6%    | 1.95          |
 
 ## Quick Start
 
@@ -145,14 +145,14 @@ cd dashboard && npm install && npm run dev
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Backtest Engine | Rust + PyO3 + nautilus-indicators |
-| API Server | Python, FastAPI, async |
-| LLM Agents | Gemini 3.1 Flash Lite (via OpenAI SDK) |
-| Data | Binance OHLCV + CMC MCP (global metrics, derivatives, TA) |
-| Dashboard | React 19 + Vite + TailwindCSS + Framer Motion |
-| Charts | Lightweight Charts (TradingView) |
+| Layer           | Technology                                                |
+| --------------- | --------------------------------------------------------- |
+| Backtest Engine | Rust + PyO3 + nautilus-indicators                         |
+| API Server      | Python, FastAPI, async                                    |
+| LLM Agents      | Gemini 3.1 Flash Lite (via OpenAI SDK)                    |
+| Data            | Binance OHLCV + CMC MCP (global metrics, derivatives, TA) |
+| Dashboard       | React 19 + Vite + TailwindCSS + Framer Motion             |
+| Charts          | Lightweight Charts (TradingView)                          |
 
 ## Skill Definition
 
@@ -160,13 +160,13 @@ See [`skills/arbiter-strategy-optimizer.yaml`](skills/arbiter-strategy-optimizer
 
 ## API Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `POST /api/optimize` | Run multi-agent optimization loop with CMC context |
-| `POST /api/backtest/detailed` | Run premade strategy backtest |
-| `POST /api/backtest/custom` | Run user-defined strategy backtest |
-| `POST /api/strategy/generate` | Natural language → structured strategy config |
-| `GET /api/ohlcv/{symbol}` | Fetch OHLCV data |
+| Endpoint                      | Description                                        |
+| ----------------------------- | -------------------------------------------------- |
+| `POST /api/optimize`          | Run multi-agent optimization loop with CMC context |
+| `POST /api/backtest/detailed` | Run premade strategy backtest                      |
+| `POST /api/backtest/custom`   | Run user-defined strategy backtest                 |
+| `POST /api/strategy/generate` | Natural language → structured strategy config      |
+| `GET /api/ohlcv/{symbol}`     | Fetch OHLCV data                                   |
 
 ## License
 
