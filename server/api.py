@@ -15,7 +15,6 @@ from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from server.ws import streamer
-from server.database import init_db
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -24,7 +23,6 @@ STATIC_DIR = Path(__file__).parent.parent / "dashboard" / "dist"
 
 @asynccontextmanager
 async def lifespan(app):
-    await init_db()
     yield
 
 

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://arbiter:arbiter_secret@localhost:5432/arbiter"
+    "sqlite+aiosqlite:///./arbiter.db"
 )
 
 engine = create_async_engine(DATABASE_URL, echo=False)
